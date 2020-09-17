@@ -1,7 +1,8 @@
 ## This makefile adheres to the tset C++ developer workflow.
 
-DEVELOPER_WORKFLOW_VERSION := 0.1.0
-DEVELOPER_WORKFLOW_REPO := https://github.com/h3tch/tset-dev-workflow-conan.git
+CURRENT_WORKFLOW_VERSION := 0.2.0
+WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
+WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 export PROJECT_DIR := $(abspath .)
 include config
@@ -139,14 +140,17 @@ else
 	echo "You are already inside the container."
 endif
 
-upgrade:
+upgrade-developer-workflow:
 ifeq ($(IS_INSIDE_CONTAINER), 0)
-	$(call execute_make_target_in_container,upgrade)
-else
-	mkdir -p /tmp \
-		&& git clone --depth 1 \
+	$(call execute_make_target_in_container,upgrade-developer-workflow)
+else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
+	echo "Upgrade developer workflow from $(CURRENT_WORKFLOW_VERSION) to $(WORKFLOW_VERSION)."
+	git clone --depth 1 \
 			--branch $(DEVELOPER_WORKFLOW_VERSION) \
 			$(DEVELOPER_WORKFLOW_REPO) /tmp/dev-workflow \
-		&& cp -a /tmp/dev-workflow/. /$(PROJECT_DIR)/
+		&& cd /tmp/dev-workflow \
+		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
+		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
+		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \;
+	rm -rf /tmp/dev-workflow
 endif
-
