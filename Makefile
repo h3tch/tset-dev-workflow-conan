@@ -72,8 +72,8 @@ endef
 # MAKEFILE TARGETS
 
 .DEFAULT_GOAL := help
-.PHONY:  help build rebuild release debug test package test-package upload shell
-.SILENT: help build rebuild release debug test package test-package upload shell
+.PHONY:  help build rebuild release debug test package test-package upload shell upgrade-developer-workflow
+.SILENT: help build rebuild release debug test package test-package upload shell upgrade-developer-workflow
 
 help: ## | Show this help.
 	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -145,7 +145,7 @@ ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upgrade-developer-workflow)
 else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	echo "Upgrade developer workflow from $(CURRENT_WORKFLOW_VERSION) to $(WORKFLOW_VERSION)."
-	git clone --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
+	git clone --quiet --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
 		&& cd /tmp/dev-workflow \
 		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
 		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
