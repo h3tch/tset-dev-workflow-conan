@@ -1,6 +1,6 @@
 ## This makefile adheres to the tset C++ developer workflow.
 
-CURRENT_WORKFLOW_VERSION := 0.2.2
+CURRENT_WORKFLOW_VERSION := 0.2.3
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -145,6 +145,7 @@ ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upgrade-developer-workflow)
 else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	echo "Upgrade developer workflow from $(CURRENT_WORKFLOW_VERSION) to $(WORKFLOW_VERSION)."
+	git config --global advice.detachedHead false
 	git clone --quiet --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
 		&& cd /tmp/dev-workflow \
 		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
