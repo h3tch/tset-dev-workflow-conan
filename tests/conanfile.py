@@ -1,5 +1,4 @@
 from conans import ConanFile, CMake
-import os
 import glob
 
 class CppDevContainerTestConan(ConanFile):
