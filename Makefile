@@ -1,6 +1,6 @@
 ## This makefile adheres to the tset C++ developer workflow.
 
-CURRENT_WORKFLOW_VERSION := 0.2.3
+CURRENT_WORKFLOW_VERSION := 0.2.4
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
