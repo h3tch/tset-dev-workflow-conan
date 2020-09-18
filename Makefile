@@ -1,6 +1,6 @@
 ## This makefile adheres to the tset C++ developer workflow.
 
-CURRENT_WORKFLOW_VERSION := 0.2.4
+CURRENT_WORKFLOW_VERSION := 0.2.5
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -65,7 +65,7 @@ define conan_upload_package
 		&& conan user $(CONAN_USER) --password $(CONAN_PASSWORD) -r tset-conan \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			-f --package-folder=$(PROJECT_DIR)/out/package \
-		&& conan upload $(CONAN_RECIPE) -r=tset-conan
+		&& conan upload $(CONAN_RECIPE) -r=tset-conan --all --check
 endef
 
 
@@ -109,7 +109,7 @@ test: ## | Run the unit tests inside the container. -- Requires: compile
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,test)
 else
-	make --directory $(PROJECT_DIR)/out/build test
+	LD_LIBRARY_PATH=$(PROJECT_DIR)/out/build/bin make --directory $(PROJECT_DIR)/out/build test
 endif
 
 package: ## | Build a conan package out of the binaries. -- Requires: compile

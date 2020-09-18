@@ -8,9 +8,10 @@ include (GoogleTest)
 
 file (GLOB CPP_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "$ENV{PROJECT_DIR}/src/*.cpp")
 list (LENGTH CPP_FILES NUM_FILES)
+list (LENGTH CONAN_LIBS NUM_LIBS)
 
 list (APPEND REQUIRED_LINK_LIBRARIES gtest_main gtest pthread)
-if (${CONAN_LIBS})
+if (${NUM_LIBS})
     list (APPEND REQUIRED_LINK_LIBRARIES ${CONAN_LIBS})
 endif ()
 if (${NUM_FILES})
