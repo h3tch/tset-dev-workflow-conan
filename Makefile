@@ -1,8 +1,35 @@
 ## This makefile adheres to the tset C++ developer workflow.
+## 
+## It expects a "config" and a "Dockerfile" file in the same
+## directory as this Makefile. The "config" file contains a
+## list of environment variables. These include the following:
+##
+## PROJECT_NAME=the-name-of-the-project
+## PROJECT_VERSION=1.0.0
+## PROJECT_URL=https://github.com/optional/path/to/repo.git
+## PROJECT_DESCRIPTION="Optional project information."
+## WORKFLOW_VERSION=0.2.6
+## DOCKER_IMAGE_VERSION=latest
+## CONAN_BASE_IMAGE=tset-conan-base:1.0.0
+## CONAN_SERVER_NAME=conan-server-name
+## CONAN_SERVER_URL=http://localhost:9300
+## CONAN_USER=username
+## CONAN_CHANNEL=testing
+## 
+## For the make targets "build" ane "upload" the environment
+## variable CONAN_PASSWORD also needs to be provided:
+## 
+## $ CONAN_PASSWORD=password make build
+## 
+## To not add the password to the comandline history (for 
+## security reasons), add a "space" infront of the command.
 
-CURRENT_WORKFLOW_VERSION := 0.2.5
+CURRENT_WORKFLOW_VERSION := 0.2.6
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
+
+CONAN_PASSWORD ?= $(CONAN_USER)
+CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
 
 export PROJECT_DIR := $(abspath .)
 include config
@@ -17,6 +44,10 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -it \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
+	-e CONAN_USER=$(CONAN_USER) \
+	-e CONAN_PASSWORD=$(CONAN_PASSWORD) \
+	-e CONAN_SERVER_NAME=$(CONAN_SERVER_NAME) \
+	-e CONAN_SERVER_URL=$(CONAN_SERVER_URL) \
 	-v $(PROJECT_DIR):/workspace \
 	-w=/workspace \
 	--name $(PROJECT_NAME) \
@@ -29,15 +60,13 @@ endef
 
 # CONAN MACROS
 
-CONAN_PASSWORD ?= $(CONAN_USER)
-CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
-
 define conan_compile_with_build_type
-	-@rm -rf out
-	@source config \
+	-rm -rf out
+	source config \
 		&& conan source . \
 			--source-folder=$(PROJECT_DIR)/out/source \
-		&& conan install . --update -s build_type=$(1) \
+		&& conan install . \
+			--update -s build_type=$(1) \
 			--install-folder=$(PROJECT_DIR)/out/build \
 		&& conan build . \
 			--source-folder=$(PROJECT_DIR)/out/source \
@@ -45,7 +74,7 @@ define conan_compile_with_build_type
 endef
 
 define conan_create_package
-	@source config \
+	source config \
 		&& conan package . \
 			--source-folder=$(PROJECT_DIR)/out/source \
 			--build-folder=$(PROJECT_DIR)/out/build \
@@ -53,7 +82,7 @@ define conan_create_package
 endef
 
 define conan_test_package
-	@source config \
+	source config \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			--package-folder=$(PROJECT_DIR)/out/package \
 		&& conan test tests $(CONAN_RECIPE) \
@@ -61,11 +90,11 @@ define conan_test_package
 endef
 
 define conan_upload_package
-	@source config \
-		&& conan user $(CONAN_USER) --password $(CONAN_PASSWORD) -r tset-conan \
+	source config \
+		&& conan user $(CONAN_USER) --password $(CONAN_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			-f --package-folder=$(PROJECT_DIR)/out/package \
-		&& conan upload $(CONAN_RECIPE) -r=tset-conan --all --check
+		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME)-local --all --check
 endef
 
 
@@ -80,7 +109,13 @@ help: ## | Show this help.
 
 rebuild: ## | Rebuild the docker container image (no cache).
 ifeq ($(IS_INSIDE_CONTAINER), 0)
-	docker build --rm $(DOCKER_BUILD_NO_CACHE) -t $(DOCKER_IMAGE_TAG) .
+	docker build --rm $(DOCKER_BUILD_NO_CACHE) \
+		--tag $(DOCKER_IMAGE_TAG) \
+		--build-arg CONAN_BASE_IMAGE=$(CONAN_BASE_IMAGE) \
+		--build-arg CONAN_USER=$(CONAN_USER) \
+		--build-arg CONAN_PASSWORD=$(CONAN_PASSWORD) \
+		--build-arg CONAN_SERVER_NAME=$(CONAN_SERVER_NAME) \
+		--build-arg CONAN_SERVER_URL=$(CONAN_SERVER_URL) .
 else
 	echo "Must be executed outside the container."
 endif
@@ -105,28 +140,28 @@ else
 	$(call conan_compile_with_build_type,Debug)
 endif
 
-test: ## | Run the unit tests inside the container. -- Requires: compile
+test: ## | Run the unit tests inside the container. -- Requires: release/debug
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,test)
 else
 	LD_LIBRARY_PATH=$(PROJECT_DIR)/out/build/bin make --directory $(PROJECT_DIR)/out/build test
 endif
 
-package: ## | Build a conan package out of the binaries. -- Requires: compile
+package: ## | Build a conan package out of the binaries. -- Requires: release/debug
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,package)
 else
 	$(call conan_create_package)
 endif
 
-test-package: ## | Execute the unit test linking with the conan package. -- Requires: compile, package
+test-package: ## | Execute the unit test linking with the conan package. -- Requires: release/debug, package
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,test-package)
 else
 	$(call conan_test_package)
 endif
 
-upload: ## | Upload the packages to the package server. -- Requires: compile, package
+upload: ## | Upload the packages to the package server (` CONAN_PASSWORD=password make upload). -- Requires: release/debug, package
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upload)
 else
@@ -140,7 +175,7 @@ else
 	echo "You are already inside the container."
 endif
 
-upgrade-developer-workflow:
+upgrade-developer-workflow: ## | Upgrade to a different developer workfow version.
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upgrade-developer-workflow)
 else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
