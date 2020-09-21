@@ -24,7 +24,7 @@
 ## To not add the password to the comandline history (for 
 ## security reasons), add a "space" infront of the command.
 
-CURRENT_WORKFLOW_VERSION := 0.2.6
+CURRENT_WORKFLOW_VERSION := 0.2.7
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -94,7 +94,7 @@ define conan_upload_package
 		&& conan user $(CONAN_USER) --password $(CONAN_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			-f --package-folder=$(PROJECT_DIR)/out/package \
-		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME)-local --all --check
+		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
 
@@ -111,11 +111,7 @@ rebuild: ## | Rebuild the docker container image (no cache).
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	docker build --rm $(DOCKER_BUILD_NO_CACHE) \
 		--tag $(DOCKER_IMAGE_TAG) \
-		--build-arg CONAN_BASE_IMAGE=$(CONAN_BASE_IMAGE) \
-		--build-arg CONAN_USER=$(CONAN_USER) \
-		--build-arg CONAN_PASSWORD=$(CONAN_PASSWORD) \
-		--build-arg CONAN_SERVER_NAME=$(CONAN_SERVER_NAME) \
-		--build-arg CONAN_SERVER_URL=$(CONAN_SERVER_URL) .
+		--build-arg CONAN_BASE_IMAGE=$(CONAN_BASE_IMAGE) .
 else
 	echo "Must be executed outside the container."
 endif
