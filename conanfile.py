@@ -3,13 +3,14 @@ import glob
 import os
 
 current_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-is_header_only_library = len(glob.glob("src/*")) == 0
+is_header_only_library = len(glob.glob(os.path.join(current_directory, "src", "*"))) == 0
 
 class CppDevContainerConan(ConanFile):
     license = "Proprietary"
     generators = "cmake"
     exports = "config"
     exports_sources = "include/*", "src/*", "tests/*", "CMakeLists.txt", "LICENSE"
+    settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False]}
     default_options = {"shared": True}
 
@@ -20,10 +21,6 @@ class CppDevContainerConan(ConanFile):
         CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
-
-        if not is_header_only_library:
-            CppDevContainerConan.settings = "os", "compiler", "build_type", "arch"
-
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
         CppDevContainerConan.requires = CONAN_REQUIRE.split(',') if len(CONAN_REQUIRE) > 0 else None
 
