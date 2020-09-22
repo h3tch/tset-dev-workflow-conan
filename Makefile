@@ -24,7 +24,7 @@
 ## To not add the password to the comandline history (for 
 ## security reasons), add a "space" infront of the command.
 
-CURRENT_WORKFLOW_VERSION := 0.2.9
+CURRENT_WORKFLOW_VERSION := 0.2.10
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
