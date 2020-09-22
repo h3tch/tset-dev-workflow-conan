@@ -37,6 +37,7 @@ class CppDevContainerConan(ConanFile):
     def package(self):
         self.copy("*", dst="bin", src="bin", excludes=("test*", "*.so"))
         self.copy("*.h", dst="include", src="include")
+        self.copy("*.hpp", dst="include", src="include")
         self.copy("*.so", dst="lib", src="lib", keep_path=False)
 
     def package_info(self):
