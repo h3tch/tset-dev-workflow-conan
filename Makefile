@@ -15,6 +15,7 @@
 ## DOCKER_BASE_IMAGE=tset-conan-base:1.0.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
+## CONAN_SERVER_NAME=conan-server
 ## CONAN_CHANNEL=testing
 ## CONAN_REQUIRE=boost/1.74.0,tset-stdc/1.0.0@tset/stable
 ## ```
@@ -27,6 +28,7 @@
 ## | DOCKER_BASE_IMAGE | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images shoud in some way be derived from the "tset-conan-base" image. |
 ## | DOCKER_IMAGE      | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
 ## | CONAN_USER        | The conan user for package search and upload. |
+## | CONAN_SERVER_NAME | The name of the conan server from where to down and upload internal packages. |
 ## | CONAN_CHANNEL     | The conan channel from where to down and upload internal packages. |
 ## | CONAN_REQUIRE     | Additional conan requirements as a comma separated list. |
 ## 
@@ -86,7 +88,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.2.12
+CURRENT_WORKFLOW_VERSION := 0.2.13
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -96,6 +98,7 @@ include config
 
 # COMPILE VARIABLES
 
+CONAN_USER_PASSWORD ?= $(CONAN_USER)
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
 IS_INSIDE_CONTAINER := $(shell awk -F/ '$$2 == "docker"' /proc/self/cgroup | wc -l)
 DOCKER_BUILD_NO_CACHE ?= --no-cache
@@ -145,6 +148,7 @@ endef
 
 define conan_upload_package
 	source config \
+		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			-f --package-folder=$(PROJECT_DIR)/out/package \
 		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
@@ -213,7 +217,7 @@ else
 	$(call conan_test_package)
 endif
 
-upload: ## | Upload the packages to the package server (` CONAN_PASSWORD=password make upload). -- Requires: release/debug, package
+upload: ## | Upload the packages to the package server (` CONAN_USER_PASSWORD=<password: default CONAN_USER> make upload`). -- Requires: release/debug, package
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upload)
 else
