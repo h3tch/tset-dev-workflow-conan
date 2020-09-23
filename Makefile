@@ -37,16 +37,12 @@
 ## The `Dockerfile` needs to start with the following lines
 ## ```
 ## ARG DOCKER_BASE_IMAGE
-## FROM ${DOCKER_BASE_IMAGE} AS cpp-dev-container
-## USER root
+## FROM ${DOCKER_BASE_IMAGE}
 ## ```
-## and should end with
-## ```
-## ARG USERNAME=coder
-## USER ${USERNAME}
-## ```
-## to extend the `DOCKER_BASE_IMAGE` defined in the config file and to set the user to the default dev workflow user "coder".
-##
+## Note that the current user will be `coder`. To install package you might need
+## to switch to the `root` user. But make sure that in the end `coder` is the user
+## again.
+## 
 ## ### The required project layout
 ## 
 ## The following directory layout is required by this dev workflow:
