@@ -86,7 +86,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.2.11
+CURRENT_WORKFLOW_VERSION := 0.2.12
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -162,10 +162,12 @@ help: ## | Show this help.
 
 rebuild: ## | Rebuild the docker container image (no cache).
 ifeq ($(IS_INSIDE_CONTAINER), 0)
-	[ -f $(PROJECT_DIR)/Dockerfile ] || docker build \
+	[ -f $(PROJECT_DIR)/Dockerfile ] \
+	&& docker build \
 		--rm $(DOCKER_BUILD_NO_CACHE) \
 		--tag $(DOCKER_IMAGE) \
-		--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) .
+		--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) . \
+	|| echo "No Dockerfile found. Skipping docker build."
 else
 	echo "Must be executed outside the container."
 endif
