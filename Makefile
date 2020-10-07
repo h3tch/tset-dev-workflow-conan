@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.2.14
+CURRENT_WORKFLOW_VERSION := 0.2.15
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -137,7 +137,7 @@ endef
 define conan_test_package
 	source config \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			--package-folder=$(PROJECT_DIR)/out/package \
+			--force --package-folder=$(PROJECT_DIR)/out/package \
 		&& conan test tests $(CONAN_RECIPE) \
 			--test-build-folder=$(PROJECT_DIR)/out/tests
 endef
@@ -146,7 +146,7 @@ define conan_upload_package
 	source config \
 		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			-f --package-folder=$(PROJECT_DIR)/out/package \
+			--force --package-folder=$(PROJECT_DIR)/out/package \
 		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 

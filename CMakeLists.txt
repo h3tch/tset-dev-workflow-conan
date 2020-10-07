@@ -14,6 +14,25 @@ message(STATUS "CONAN_INCLUDE_DIRS: ${CONAN_INCLUDE_DIRS}")
 message(STATUS "CONAN_LIB_DIRS: ${CONAN_LIB_DIRS}")
 message(STATUS "CONAN_LIBS: ${CONAN_LIBS}")
 
+## Configure all .in files in the tests folder.
+
+function (configure_all_files_in_directory DIR)
+    file (GLOB FILES_TO_CONFIGURE "$ENV{PROJECT_DIR}/${DIR}/*.in")
+    foreach (file ${FILES_TO_CONFIGURE})
+        get_filename_component (name ${file} NAME_WE)
+        configure_file("${file}" "${DIR}/${name}.h")
+    endforeach ()
+    if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${DIR})
+        list(APPEND CONFIG_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${DIR})
+        set(CONFIG_INCLUDE_DIRS ${CONFIG_INCLUDE_DIRS} PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+configure_all_files_in_directory("include")
+configure_all_files_in_directory("src")
+
+message(STATUS "CONFIG_INCLUDE_DIRS: ${CONFIG_INCLUDE_DIRS}")
+
 # CREATE A SHARED OBJECT OR HEADER ONLY LIBRARY
 
 file (GLOB CPP_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
@@ -27,14 +46,20 @@ if (${HAS_SOURCE_FILES})
         message (STATUS "Create a shared library")
         add_library ($ENV{PROJECT_NAME} SHARED ${CPP_FILES})
     endif ()
-    target_include_directories ($ENV{PROJECT_NAME} PUBLIC include PRIVATE ${CONAN_INCLUDE_DIRS} src/include)
+    target_include_directories ($ENV{PROJECT_NAME}
+        PUBLIC
+            include
+        PRIVATE
+            src/include
+            ${CONFIG_INCLUDE_DIRS}
+            ${CONAN_INCLUDE_DIRS})
     target_link_directories ($ENV{PROJECT_NAME} PRIVATE ${CONAN_LIB_DIRS})
     target_link_libraries ($ENV{PROJECT_NAME} ${CONAN_LIBS})
     set_property(TARGET $ENV{PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 else ()
     message (STATUS "Create a header only library")
     add_library ($ENV{PROJECT_NAME} INTERFACE)
-    target_include_directories ($ENV{PROJECT_NAME} INTERFACE include ${CONAN_INCLUDE_DIRS})
+    target_include_directories ($ENV{PROJECT_NAME} INTERFACE include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
 endif ()
 
 # ADD UNIT TESTS

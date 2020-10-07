@@ -30,14 +30,19 @@ endif ()
 ## Configure all .in files in the tests folder.
 
 function (configure_all_files_in_directory DIR)
-    file (GLOB FILES_TO_CONFIGURE "${DIR}/*.in")
+    file (GLOB FILES_TO_CONFIGURE "$ENV{PROJECT_DIR}/${DIR}/*.in")
     foreach (file ${FILES_TO_CONFIGURE})
         get_filename_component (name ${file} NAME_WE)
-        configure_file("${file}" "${name}.h")
+        configure_file("${file}" "${DIR}/${name}.h")
     endforeach ()
+    if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${DIR})
+        list(APPEND CONFIG_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${DIR})
+        set(CONFIG_INCLUDE_DIRS ${CONFIG_INCLUDE_DIRS} PARENT_SCOPE)
+    endif ()
 endfunction ()
 
-configure_all_files_in_directory("$ENV{PROJECT_DIR}/tests")
+configure_all_files_in_directory("include")
+configure_all_files_in_directory("tests")
 
 ## Add GTest files
 
@@ -47,7 +52,11 @@ foreach (file ${TEST_FILES})
     add_executable (${name} ${file})
     add_dependencies (${name} $ENV{PROJECT_NAME})
     set_property(TARGET ${name} PROPERTY CXX_STANDARD 17)
-    target_include_directories (${name} PRIVATE $ENV{PROJECT_DIR}/include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
+    target_include_directories (${name}
+        PRIVATE
+            $ENV{PROJECT_DIR}/include
+            ${CONFIG_INCLUDE_DIRS}
+            ${CONAN_INCLUDE_DIRS})
     target_link_libraries (${name} ${REQUIRED_LINK_LIBRARIES})
     gtest_discover_tests (${name})
 endforeach ()
