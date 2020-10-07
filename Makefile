@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.2.15
+CURRENT_WORKFLOW_VERSION := 0.2.16
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -101,8 +101,8 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -it \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
-	-v $(PROJECT_DIR):/workspace \
-	-w=/workspace \
+	-v $(PROJECT_DIR):/workspaces \
+	-w=/workspaces \
 	--name $(PROJECT_NAME) \
 	$(DOCKER_IMAGE)
 
