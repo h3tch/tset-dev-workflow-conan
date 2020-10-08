@@ -25,7 +25,7 @@
 ## | Variable Name     | Description |
 ## |-------------------|-------------|
 ## | WORKFLOW_VERSION  | The tset developer workflow version to be used. When you execute `make upgrade-developer-workflow`, this version will be downloaded. Note that this will overwrite the existing dev workflow files. |
-## | DOCKER_BASE_IMAGE | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images shoud in some way be derived from the "tset-conan-base" image. |
+## | DOCKER_BASE_IMAGE | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images should in some way be derived from the "tset-conan-base" image. |
 ## | DOCKER_IMAGE      | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
 ## | CONAN_USER        | The conan user for package search and upload. |
 ## | CONAN_SERVER_NAME | The name of the conan server from where to down and upload internal packages. |
@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.3.0
+CURRENT_WORKFLOW_VERSION := 0.4.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -110,7 +110,7 @@ DOCKER_RUN_COMMAND := docker run --rm -it \
 	--name $(PROJECT_NAME) \
 	$(DOCKER_IMAGE)
 
-older_than = $(shell if [[ "$$(find $(1) -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")" -ot "$$(find $(2) -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")" ]]; then echo 1; fi)
+older_than = $(shell if [[ "$$(find $(1) -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -f2- -d" ")" -ot "$$(find $(2) -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -f2- -d" ")" ]]; then echo 1; fi)
 HAS_UPDATE_IN_INCLUDE := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/include)
 HAS_UPDATE_IN_SRC := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/src)
 HAS_UPDATE_IN_TESTS := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/tests)
@@ -125,20 +125,16 @@ endef
 
 define conan_compile_with_build_type
 	source config \
-		&& conan source . \
-			--source-folder=$(SOURCE_OUT_DIR) \
 		&& conan install . \
 			--update -s build_type=$(1) \
 			--install-folder=$(BUILD_OUT_DIR) \
 		&& conan build . \
-			--source-folder=$(SOURCE_OUT_DIR) \
 			--build-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_create_package
 	source config \
 		&& conan package . \
-			--source-folder=$(SOURCE_OUT_DIR) \
 			--build-folder=$(BUILD_OUT_DIR) \
 			--package-folder=$(PACKAGE_OUT_DIR)
 endef
