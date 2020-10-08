@@ -240,7 +240,7 @@ else
 	echo "You are already inside the container."
 endif
 
-upgrade-developer-workflow: ## | Upgrade to a different developer workfow version.
+upgrade-developer-workflow: ## | Upgrade to a different developer workflow version.
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,upgrade-developer-workflow)
 else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
