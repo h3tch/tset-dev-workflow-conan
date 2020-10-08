@@ -84,11 +84,15 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.2.16
+CURRENT_WORKFLOW_VERSION := 0.3.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 export PROJECT_DIR := $(abspath .)
+BUILD_OUT_DIR := $(PROJECT_DIR)/out/build
+SOURCE_OUT_DIR := $(PROJECT_DIR)/out/source
+TESTS_OUT_DIR := $(PROJECT_DIR)/out/tests
+PACKAGE_OUT_DIR := $(PROJECT_DIR)/out/package
 include config
 
 
@@ -106,6 +110,12 @@ DOCKER_RUN_COMMAND := docker run --rm -it \
 	--name $(PROJECT_NAME) \
 	$(DOCKER_IMAGE)
 
+older_than = $(shell if [[ "$$(find $(1) -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")" -ot "$$(find $(2) -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")" ]]; then echo 1; fi)
+HAS_UPDATE_IN_INCLUDE := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/include)
+HAS_UPDATE_IN_SRC := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/src)
+HAS_UPDATE_IN_TESTS := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/tests)
+HAS_UPDATE = $(or $(HAS_UPDATE_IN_INCLUDE),$(HAS_UPDATE_IN_SRC),$(HAS_UPDATE_IN_TESTS))
+
 define execute_make_target_in_container
 	$(DOCKER_RUN_COMMAND) /bin/bash -c "make $(1)"
 endef
@@ -114,39 +124,38 @@ endef
 # CONAN MACROS
 
 define conan_compile_with_build_type
-	-rm -rf out
 	source config \
 		&& conan source . \
-			--source-folder=$(PROJECT_DIR)/out/source \
+			--source-folder=$(SOURCE_OUT_DIR) \
 		&& conan install . \
 			--update -s build_type=$(1) \
-			--install-folder=$(PROJECT_DIR)/out/build \
+			--install-folder=$(BUILD_OUT_DIR) \
 		&& conan build . \
-			--source-folder=$(PROJECT_DIR)/out/source \
-			--build-folder=$(PROJECT_DIR)/out/build
+			--source-folder=$(SOURCE_OUT_DIR) \
+			--build-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_create_package
 	source config \
 		&& conan package . \
-			--source-folder=$(PROJECT_DIR)/out/source \
-			--build-folder=$(PROJECT_DIR)/out/build \
-			--package-folder=$(PROJECT_DIR)/out/package
+			--source-folder=$(SOURCE_OUT_DIR) \
+			--build-folder=$(BUILD_OUT_DIR) \
+			--package-folder=$(PACKAGE_OUT_DIR)
 endef
 
 define conan_test_package
 	source config \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			--force --package-folder=$(PROJECT_DIR)/out/package \
+			--force --package-folder=$(PACKAGE_OUT_DIR) \
 		&& conan test tests $(CONAN_RECIPE) \
-			--test-build-folder=$(PROJECT_DIR)/out/tests
+			--test-build-folder=$(TESTS_OUT_DIR)
 endef
 
 define conan_upload_package
 	source config \
 		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			--force --package-folder=$(PROJECT_DIR)/out/package \
+			--force --package-folder=$(PACKAGE_OUT_DIR) \
 		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
@@ -182,6 +191,7 @@ release: ## | Compile and link the source code inside the container into binarie
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,release)
 else
+	-rm -rf $(PROJECT_DIR)/out
 	$(call conan_compile_with_build_type,Release)
 endif
 
@@ -189,6 +199,9 @@ debug: ## | Compile and link the source code inside the container into binaries 
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,debug)
 else
+  ifeq ($(HAS_UPDATE), 1)
+	-rm -rf $(PROJECT_DIR)/out
+  endif
 	$(call conan_compile_with_build_type,Debug)
 endif
 
@@ -196,7 +209,7 @@ test: ## | Run the unit tests inside the container. -- Requires: release/debug
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,test)
 else
-	LD_LIBRARY_PATH=$(PROJECT_DIR)/out/build/bin make --directory $(PROJECT_DIR)/out/build test
+	LD_LIBRARY_PATH=$(BUILD_OUT_DIR)/bin make --directory $(BUILD_OUT_DIR) test
 endif
 
 package: ## | Build a conan package out of the binaries. -- Requires: release/debug
