@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.4.1
+CURRENT_WORKFLOW_VERSION := 0.5.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -246,6 +246,14 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 		&& cd /tmp/dev-workflow \
 		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
 		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \;
+		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
+		&& find . -name 'devcontainer.json' -exec cp --parents '{}' /$(PROJECT_DIR) \;
 	rm -rf /tmp/dev-workflow
+endif
+
+vscode: ## | Start Visual Studio Code with all environment variables of the config file set.
+ifeq ($(IS_INSIDE_CONTAINER), 0)
+	$(shell cat $(PROJECT_DIR)/config) code .
+else
+	echo "Must be executed outside the container."
 endif
