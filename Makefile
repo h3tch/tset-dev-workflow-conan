@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.7.0
+CURRENT_WORKFLOW_VERSION := 0.7.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -202,6 +202,8 @@ ifeq ($(IS_INSIDE_CONTAINER), 0)
 else ifeq ($(NEEDS_REBUILD), 1)
 	-rm -rf $(PROJECT_DIR)/out
 	$(call conan_compile_with_build_type,Debug)
+else
+	echo "Nothing to do."
 endif
 
 test: ## | Run the unit tests inside the container. -- Requires: release/debug
