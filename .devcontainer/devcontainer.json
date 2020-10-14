@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.112.0/containers/cpp
 {
-	"name": "Turning",
+	"name": "TSET Developer Workflow",
 	"runArgs": [
 		"--env-file", "config",
 		"-e", "DISPLAY",
@@ -13,7 +13,7 @@
 		"seccomp=unconfined"
 	],
 	"build": {
-		"dockerfile": "../Dockerfile",
+		"dockerfile": "${localEnv:DOCKERFILE_PATH}",
 		"context": "..",
 		"args": {
 			"DOCKER_BASE_IMAGE": "${localEnv:DOCKER_BASE_IMAGE}"

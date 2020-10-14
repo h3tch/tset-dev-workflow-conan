@@ -11,7 +11,7 @@
 ## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-## WORKFLOW_VERSION=0.2.11
+## WORKFLOW_VERSION=0.7.0
 ## DOCKER_BASE_IMAGE=tset-conan-base:1.0.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.6.0
+CURRENT_WORKFLOW_VERSION := 0.7.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -93,6 +93,9 @@ BUILD_OUT_DIR := $(PROJECT_DIR)/out/build
 SOURCE_OUT_DIR := $(PROJECT_DIR)/out/source
 TESTS_OUT_DIR := $(PROJECT_DIR)/out/tests
 PACKAGE_OUT_DIR := $(PROJECT_DIR)/out/package
+CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
+LATEST_BUILD_TYPE := $(shell cat $(BUILD_OUT_DIR)/build_type 2>/dev/null | head -n1 | cut -d " " -f1)
+DOCKERFILE_PATH := $(or $(wildcard $(PROJECT_DIR)/Dockerfile), $(wildcard $(PROJECT_DIR)/.devcontainer/Dockerfile))
 include config
 
 
@@ -105,8 +108,8 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -it \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
-	-v $(PROJECT_DIR):/workspaces \
-	-w=/workspaces \
+	-v $(PROJECT_DIR):$(CONTAINER_DIR) \
+	-w=$(CONTAINER_DIR) \
 	--name $(PROJECT_NAME) \
 	$(DOCKER_IMAGE)
 
@@ -115,6 +118,7 @@ HAS_UPDATE_IN_INCLUDE := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/inclu
 HAS_UPDATE_IN_SRC := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/src)
 HAS_UPDATE_IN_TESTS := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/tests)
 HAS_UPDATE = $(or $(HAS_UPDATE_IN_INCLUDE),$(HAS_UPDATE_IN_SRC),$(HAS_UPDATE_IN_TESTS))
+NEEDS_REBUILD = $(if $(or $(filter Release,$(LATEST_BUILD_TYPE)), $(filter 1,$(HAS_UPDATE))),1,)
 
 define execute_make_target_in_container
 	$(DOCKER_RUN_COMMAND) /bin/bash -c "make $(1)"
@@ -129,7 +133,8 @@ define conan_compile_with_build_type
 			--update -s build_type=$(1) \
 			--install-folder=$(BUILD_OUT_DIR) \
 		&& conan build . \
-			--build-folder=$(BUILD_OUT_DIR)
+			--build-folder=$(BUILD_OUT_DIR) \
+		&& echo $(1) > $(BUILD_OUT_DIR)/build_type
 endef
 
 define conan_create_package
@@ -194,10 +199,8 @@ endif
 debug: ## | Compile and link the source code inside the container into binaries with debug symbols.
 ifeq ($(IS_INSIDE_CONTAINER), 0)
 	$(call execute_make_target_in_container,debug)
-else
-  ifeq ($(HAS_UPDATE), 1)
+else ifeq ($(NEEDS_REBUILD), 1)
 	-rm -rf $(PROJECT_DIR)/out
-  endif
 	$(call conan_compile_with_build_type,Debug)
 endif
 
@@ -247,13 +250,14 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
 		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
 		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'devcontainer.json' -exec cp --parents '{}' /$(PROJECT_DIR) \;
+		&& find . -name 'devcontainer.json' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
+		&& find . -name 'Dockerfile' -exec cp --parents '{}' /$(PROJECT_DIR) \;
 	rm -rf /tmp/dev-workflow
 endif
 
 vscode: ## | Start Visual Studio Code with all environment variables of the config file set.
 ifeq ($(IS_INSIDE_CONTAINER), 0)
-	$(shell cat $(PROJECT_DIR)/config) code .
+	$(shell cat $(PROJECT_DIR)/config) DOCKERFILE_PATH=$(DOCKERFILE_PATH) code .
 else
 	echo "Must be executed outside the container."
 endif
