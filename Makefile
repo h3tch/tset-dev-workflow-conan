@@ -11,8 +11,8 @@
 ## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-## WORKFLOW_VERSION=0.7.0
-## DOCKER_BASE_IMAGE=tset-conan-base:1.0.0
+## WORKFLOW_VERSION=0.7.2
+## DOCKER_BASE_IMAGE=tset-conan-base:1.1.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
 ## CONAN_SERVER_NAME=conan-server
@@ -84,7 +84,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.7.1
+CURRENT_WORKFLOW_VERSION := 0.7.2
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -249,11 +249,7 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	git config --global advice.detachedHead false
 	git clone --quiet --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
 		&& cd /tmp/dev-workflow \
-		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'devcontainer.json' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'Dockerfile' -exec cp --parents '{}' /$(PROJECT_DIR) \;
+		&& find . -type f \( -not -name "LICENSE" -not -path "./.git/*" \) -exec cp --parents '{}' /$(PROJECT_DIR) \;
 	rm -rf /tmp/dev-workflow
 endif
 
