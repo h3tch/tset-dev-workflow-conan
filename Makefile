@@ -11,13 +11,8 @@
 ## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-<<<<<<< HEAD
 ## WORKFLOW_VERSION=0.8.0
 ## DOCKER_BASE_IMAGE=h3tch/dev-workflow:1.0.0
-=======
-## WORKFLOW_VERSION=0.7.2
-## DOCKER_BASE_IMAGE=tset-conan-base:1.1.0
->>>>>>> ffd0f8a0f5907f6bdd4baa89ece39c1924286ac2
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
 ## CONAN_SERVER_NAME=conan-server
