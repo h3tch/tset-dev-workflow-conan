@@ -11,11 +11,12 @@
 ## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-## WORKFLOW_VERSION=0.7.0
-## DOCKER_BASE_IMAGE=tset-conan-base:1.0.0
+## WORKFLOW_VERSION=0.8.0
+## DOCKER_BASE_IMAGE=h3tch/dev-workflow:1.0.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
 ## CONAN_SERVER_NAME=conan-server
+## CONAN_SERVER_URL=http://localhost:9300
 ## CONAN_CHANNEL=testing
 ## CONAN_REQUIRE=boost/1.74.0,tset-stdc/1.0.0@tset/stable
 ## ```
@@ -29,6 +30,7 @@
 ## | DOCKER_IMAGE      | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
 ## | CONAN_USER        | The conan user for package search and upload. |
 ## | CONAN_SERVER_NAME | The name of the conan server from where to down and upload internal packages. |
+## | CONAN_SERVER_URL  | The url of the conan server from where to down and upload internal packages. |
 ## | CONAN_CHANNEL     | The conan channel from where to down and upload internal packages. |
 ## | CONAN_REQUIRE     | Additional conan requirements as a comma separated list. |
 ## 
@@ -84,7 +86,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.7.1
+CURRENT_WORKFLOW_VERSION := 0.8.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -101,8 +103,12 @@ include config
 
 # COMPILE VARIABLES
 
+CONAN_SERVER_NAME ?= local-conan
+CONAN_SERVER_URL ?= http://localhost:9300
+CONAN_USER ?= demo
 CONAN_USER_PASSWORD ?= $(CONAN_USER)
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
+CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
 IS_INSIDE_CONTAINER := $(shell awk -F/ '$$2 == "docker"' /proc/self/cgroup | wc -l)
 DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -it \
@@ -126,6 +132,10 @@ endef
 
 
 # CONAN MACROS
+
+ifneq ($(CONAN_REMOTE_EXISTS), 1)
+$(shell conan remote add $(CONAN_SERVER_NAME) $(CONAN_SERVER_URL))
+endif
 
 define conan_compile_with_build_type
 	source config \
@@ -249,11 +259,7 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	git config --global advice.detachedHead false
 	git clone --quiet --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
 		&& cd /tmp/dev-workflow \
-		&& find . -name 'conanfile.py' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'CMakeLists.txt' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'Makefile' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'devcontainer.json' -exec cp --parents '{}' /$(PROJECT_DIR) \; \
-		&& find . -name 'Dockerfile' -exec cp --parents '{}' /$(PROJECT_DIR) \;
+		&& find . -type f \( -not -name "LICENSE" -not -path "./.git/*" \) -exec cp --parents '{}' /$(PROJECT_DIR) \;
 	rm -rf /tmp/dev-workflow
 endif
 
