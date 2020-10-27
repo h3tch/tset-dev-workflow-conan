@@ -99,6 +99,7 @@ CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
 LATEST_BUILD_TYPE := $(shell cat $(BUILD_OUT_DIR)/build_type 2>/dev/null | head -n1 | cut -d " " -f1)
 DOCKERFILE_PATH := $(or $(wildcard $(PROJECT_DIR)/Dockerfile), $(wildcard $(PROJECT_DIR)/.devcontainer/Dockerfile))
 include config
+-include secret
 
 
 # COMPILE VARIABLES
