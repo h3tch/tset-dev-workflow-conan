@@ -86,7 +86,7 @@
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.8.2
+CURRENT_WORKFLOW_VERSION := 0.8.3
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -142,6 +142,7 @@ endif
 
 define conan_compile_with_build_type
 	source config \
+		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan install . \
 			--update -s build_type=$(1) \
 			--install-folder=$(BUILD_OUT_DIR) \
