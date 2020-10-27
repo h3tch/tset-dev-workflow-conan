@@ -160,6 +160,7 @@ endef
 
 define conan_test_package
 	source config \
+		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
 			--force --package-folder=$(PACKAGE_OUT_DIR) \
 		&& conan test tests $(CONAN_RECIPE) \
