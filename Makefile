@@ -115,6 +115,9 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -it \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
+	-e CONAN_USER=$(CONAN_USER) \
+	-e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
+	-e CONAN_CHANNEL=$(CONAN_CHANNEL) \
 	-v $(PROJECT_DIR):$(CONTAINER_DIR) \
 	-w=$(CONTAINER_DIR) \
 	--name $(PROJECT_NAME) \
