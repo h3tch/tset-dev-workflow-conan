@@ -29,6 +29,7 @@ function (configure_all_files_in_directory DIR)
 endfunction ()
 
 configure_all_files_in_directory("include")
+configure_all_files_in_directory("src/include")
 configure_all_files_in_directory("src")
 
 message(STATUS "CONFIG_INCLUDE_DIRS: ${CONFIG_INCLUDE_DIRS}")
