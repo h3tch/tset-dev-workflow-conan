@@ -84,9 +84,20 @@
 ## ### The Makefile Explained
 ##
 ## Please execute `make` in the root folder of the project to see the documentation of the make targets.
+## 
+## **Overwrite Environment Variables**
+## The following variables can be overwritten by adding a `FORCE_` in front. E.g.
+## ```
+## FORCE_CONAN_SERVER_NAME=my-conan \
+## FORCE_CONAN_SERVER_URL=https://repo.myconan.io \
+## FORCE_CONAN_USER=Yoda \
+## FORCE_CONAN_USER_PASSWORD=not_admin \
+## FORCE_CONAN_CHANNEL=stable \
+## make release
+## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.8.5
+CURRENT_WORKFLOW_VERSION := 0.9.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -104,15 +115,17 @@ include config
 
 # COMPILE VARIABLES
 
-CONAN_SERVER_NAME ?= local-conan
-CONAN_SERVER_URL ?= http://localhost:9300
-CONAN_USER ?= demo
-CONAN_USER_PASSWORD ?= $(CONAN_USER)
+CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
+CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
+CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
+CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
+CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),testing)
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
 CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
 IS_INSIDE_CONTAINER := $(shell counter=$$(awk -F/ '$$2 == "docker"' /proc/self/cgroup | wc -l); if [ $$counter -gt 0 ]; then echo 1; fi)
+PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
 DOCKER_BUILD_NO_CACHE ?= --no-cache
-DOCKER_RUN_COMMAND := docker run --rm -it \
+DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
 	-e CONAN_USER=$(CONAN_USER) \
