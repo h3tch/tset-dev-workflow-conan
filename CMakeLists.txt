@@ -48,19 +48,21 @@ if (${HAS_SOURCE_FILES})
         add_library ($ENV{PROJECT_NAME} SHARED ${CPP_FILES})
     endif ()
     target_include_directories ($ENV{PROJECT_NAME}
-        PUBLIC
-            include
-        PRIVATE
-            src/include
-            ${CONFIG_INCLUDE_DIRS}
-            ${CONAN_INCLUDE_DIRS})
+        PUBLIC  include
+        PRIVATE src/include ${CONFIG_INCLUDE_DIRS} ${CONAN_INCLUDE_DIRS})
     target_link_directories ($ENV{PROJECT_NAME} PRIVATE ${CONAN_LIB_DIRS})
     target_link_libraries ($ENV{PROJECT_NAME} ${CONAN_LIBS})
+    if (EXISTS "$ENV{PROJECT_DIR}/src/include/pch.h")
+        message(STATUS "Use precompile header.")
+        target_precompile_headers ($ENV{PROJECT_NAME}
+            PRIVATE "$ENV{PROJECT_DIR}/src/include/pch.h")
+    endif ()
     set_property(TARGET $ENV{PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 else ()
     message (STATUS "Create a header only library")
     add_library ($ENV{PROJECT_NAME} INTERFACE)
-    target_include_directories ($ENV{PROJECT_NAME} INTERFACE include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
+    target_include_directories ($ENV{PROJECT_NAME}
+        INTERFACE include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
 endif ()
 
 # ADD UNIT TESTS

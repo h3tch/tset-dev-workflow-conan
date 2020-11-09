@@ -55,8 +55,12 @@
 ##  | - *.h
 ##  | - *.hpp
 ##  - [src]              # Optional source files of the shared library or executable.
+##  | - [include]        # Optional private headers included at compile time.
+##  | | - [pch.h]        # Optional pricompiled header to be included in *.cpp files.
 ##  | - *.cpp
 ##  - tests              # Unit test folder containing cpp GTest files.
+##  | - [include]        # Optional private headers included at compile time.
+##  | | - [test-pch.h]   # Optional pricompiled header to be included in test-*.cpp files.
 ##  | - CMakeLists.txt   # Predefined by the dev workflow.
 ##  | - conanfile.py     # Predefined by the dev workflow.
 ##  | - test-*.cpp
@@ -68,6 +72,9 @@
 ## ```
 ##
 ## Depending on which folders and files are present, an executable, shared library or header only library will be created.
+##
+## If precompiled headers `pch.h` or `test-pch.h` are present they will be automatically 
+## included in all source and test files respectively.
 ##
 ## **Executable**
 ##
@@ -97,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.9.0
+CURRENT_WORKFLOW_VERSION := 0.10.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 

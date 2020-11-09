@@ -44,6 +44,12 @@ endfunction ()
 configure_all_files_in_directory("include")
 configure_all_files_in_directory("src/include")
 configure_all_files_in_directory("tests")
+configure_all_files_in_directory("tests/include")
+
+## Use precompiled header file
+
+file (GLOB PCH_FILES "$ENV{PROJECT_DIR}/tests/**/test-pch.h")
+list (LENGTH PCH_FILES HAS_PCH_FILES)
 
 ## Add GTest files
 
@@ -57,8 +63,18 @@ foreach (file ${TEST_FILES})
         PRIVATE
             $ENV{PROJECT_DIR}/include
             $ENV{PROJECT_DIR}/src/include
+            $ENV{PROJECT_DIR}/tests/include
             ${CONFIG_INCLUDE_DIRS}
             ${CONAN_INCLUDE_DIRS})
+    if (${HAS_PCH_FILES})
+        if (DEFINED first_target)
+            target_precompile_headers (${name} REUSE_FROM ${first_target})
+        else ()
+            message(STATUS "Use precompile header for tests.")
+            target_precompile_headers (${name} PRIVATE ${PCH_FILES})
+            set (first_target ${name})
+        endif ()
+    endif ()
     target_link_libraries (${name} ${REQUIRED_LINK_LIBRARIES})
     gtest_discover_tests (${name})
 endforeach ()
