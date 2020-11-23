@@ -53,6 +53,7 @@ list (LENGTH PCH_FILES HAS_PCH_FILES)
 
 ## Add GTest files
 
+string (REPLACE "," ";" COMPILE_OPTIONS "$ENV{COMPILE_OPTIONS}")
 file (GLOB TEST_FILES "$ENV{PROJECT_DIR}/tests/test*.cpp")
 foreach (file ${TEST_FILES})
     get_filename_component (name ${file} NAME_WE)
@@ -76,6 +77,6 @@ foreach (file ${TEST_FILES})
         endif ()
     endif ()
     target_link_libraries (${name} ${REQUIRED_LINK_LIBRARIES})
-    target_compile_options(${name} PRIVATE -Werror -Wall -Wextra)
+    target_compile_options (${name} PRIVATE ${COMPILE_OPTIONS})
     gtest_discover_tests (${name})
 endforeach ()

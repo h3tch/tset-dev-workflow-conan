@@ -36,6 +36,8 @@ message(STATUS "CONFIG_INCLUDE_DIRS: ${CONFIG_INCLUDE_DIRS}")
 
 # CREATE A SHARED OBJECT OR HEADER ONLY LIBRARY
 
+message(STATUS "COMPILE_OPTIONS: $ENV{COMPILE_OPTIONS}")
+string (REPLACE "," ";" COMPILE_OPTIONS "$ENV{COMPILE_OPTIONS}")
 file (GLOB CPP_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
 list (LENGTH CPP_FILES HAS_SOURCE_FILES)
 
@@ -52,7 +54,7 @@ if (${HAS_SOURCE_FILES})
         PRIVATE src/include ${CONFIG_INCLUDE_DIRS} ${CONAN_INCLUDE_DIRS})
     target_link_directories ($ENV{PROJECT_NAME} PRIVATE ${CONAN_LIB_DIRS})
     target_link_libraries ($ENV{PROJECT_NAME} ${CONAN_LIBS})
-    target_compile_options($ENV{PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
+    target_compile_options ($ENV{PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
     if (EXISTS "$ENV{PROJECT_DIR}/src/include/pch.h")
         message(STATUS "Use precompile header.")
         target_precompile_headers ($ENV{PROJECT_NAME}

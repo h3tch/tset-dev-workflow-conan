@@ -3,7 +3,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 0.11.0 - 2020-11-23
 ### Added
-- Enable -Werror -Wall -Wextra compiler options.
+- Enable compile options through environment variable COMPILE_OPTIONS.
 
 ## 0.10.0
 ### Added
