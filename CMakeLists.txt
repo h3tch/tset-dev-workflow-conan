@@ -52,6 +52,7 @@ if (${HAS_SOURCE_FILES})
         PRIVATE src/include ${CONFIG_INCLUDE_DIRS} ${CONAN_INCLUDE_DIRS})
     target_link_directories ($ENV{PROJECT_NAME} PRIVATE ${CONAN_LIB_DIRS})
     target_link_libraries ($ENV{PROJECT_NAME} ${CONAN_LIBS})
+    target_compile_options($ENV{PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
     if (EXISTS "$ENV{PROJECT_DIR}/src/include/pch.h")
         message(STATUS "Use precompile header.")
         target_precompile_headers ($ENV{PROJECT_NAME}

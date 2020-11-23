@@ -18,14 +18,14 @@
 ## CONAN_SERVER_NAME=conan-server
 ## CONAN_SERVER_URL=http://localhost:9300
 ## CONAN_CHANNEL=testing
-## CONAN_REQUIRE=boost/1.74.0,tset-stdc/1.0.0@tset/stable
+## CONAN_REQUIRE=boost/1.74.0,stdc/1.0.0@demo/stable
 ## ```
 ##
 ## Most of these variables should be self-explaining. Some will be described in detail:
 ##
 ## | Variable Name     | Description |
 ## |-------------------|-------------|
-## | WORKFLOW_VERSION  | The tset developer workflow version to be used. When you execute `make upgrade-developer-workflow`, this version will be downloaded. Note that this will overwrite the existing dev workflow files. |
+## | WORKFLOW_VERSION  | The developer workflow version to be used. When you execute `make upgrade-developer-workflow`, this version will be downloaded. Note that this will overwrite the existing dev workflow files. |
 ## | DOCKER_BASE_IMAGE | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images should in some way be derived from the "tset-conan-base" image. |
 ## | DOCKER_IMAGE      | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
 ## | CONAN_USER        | The conan user for package search and upload. |
@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.10.0
+CURRENT_WORKFLOW_VERSION := 0.11.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -287,7 +287,7 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	git config --global advice.detachedHead false
 	git clone --quiet --depth 1 --branch $(WORKFLOW_VERSION) $(WORKFLOW_REPO) /tmp/dev-workflow \
 		&& cd /tmp/dev-workflow \
-		&& find . -type f \( -not -name "LICENSE" -not -path "./.git/*" \) -exec cp --parents '{}' /$(PROJECT_DIR) \;
+		&& find . -type f \( -not -name "LICENSE" -not -name "readme.md" -not -name "changelog.md" -not -path "./.git/*" \) -exec cp --parents '{}' /$(PROJECT_DIR) \;
 	rm -rf /tmp/dev-workflow
 endif
 
