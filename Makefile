@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.12.1
+CURRENT_WORKFLOW_VERSION := 0.12.2
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -285,7 +285,7 @@ tidy: ## | Run clang-tidy on the source files in "src" and "tests". -- Requires:
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,tidy)
 else
-	clang-tidy -p=out/build src/*.cpp tests/*.cpp
+	clang-tidy -p=out/build $(wildcard src/*.cpp) $(wildcard tests/*.cpp)
 endif
 
 upgrade-developer-workflow: ## | Upgrade to a different developer workflow version.

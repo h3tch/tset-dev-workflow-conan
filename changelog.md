@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.12.2 - 2020-11-24
+### Fixed
+- Fix clang-tidy target. Use the wildcard function to find the source files.
+
 ## 0.12.1 - 2020-11-24
 ### Fixed
 - Pass environment variables to cmake every time it is called. This way environment
