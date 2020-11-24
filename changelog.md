@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.12.0 - 2020-11-24
+### Added
+- Add clang-tidy make target to check all source files in ./src and ./tests.
+
 ## 0.11.0 - 2020-11-23
 ### Added
 - Enable compile options through environment variable COMPILE_OPTIONS.

@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.11.0
+CURRENT_WORKFLOW_VERSION := 0.12.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -116,12 +116,17 @@ PACKAGE_OUT_DIR := $(PROJECT_DIR)/out/package
 CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
 LATEST_BUILD_TYPE := $(shell cat $(BUILD_OUT_DIR)/build_type 2>/dev/null | head -n1 | cut -d " " -f1)
 DOCKERFILE_PATH := $(or $(wildcard $(PROJECT_DIR)/Dockerfile), $(wildcard $(PROJECT_DIR)/.devcontainer/Dockerfile))
-include config
+ifeq (,$(wildcard config))
+$(info WARNING No 'config' file found.)
+endif
+-include config
 -include secret
 
 
 # COMPILE VARIABLES
 
+PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
+PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0)
 CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
 CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
 CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
@@ -277,6 +282,13 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(DOCKER_RUN_COMMAND) /bin/bash
 else
 	echo "You are already inside the container."
+endif
+
+tidy: ## | Run clang-tidy on the source files in "src" and "tests". -- Requires: release/debug
+ifneq ($(IS_INSIDE_CONTAINER), 1)
+	$(call execute_make_target_in_container,tidy)
+else
+	clang-tidy -p=out/build src/*.cpp tests/*.cpp
 endif
 
 upgrade-developer-workflow: ## | Upgrade to a different developer workflow version.
