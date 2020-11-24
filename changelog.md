@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.12.3 - 2020-11-24
+### Fixed
+- Install conan dependencies before executing clang-tidy.
+
 ## 0.12.2 - 2020-11-24
 ### Fixed
 - Fix clang-tidy target. Use the wildcard function to find the source files.

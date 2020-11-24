@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.12.2
+CURRENT_WORKFLOW_VERSION := 0.12.3
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -169,11 +169,15 @@ $(shell conan remote add $(CONAN_SERVER_NAME) $(CONAN_SERVER_URL))
 endif
 endif
 
-define conan_compile_with_build_type
+define conan_install
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 	&& conan install . \
 		--update -s build_type=$(1) \
-		--install-folder=$(BUILD_OUT_DIR) \
+		--install-folder=$(BUILD_OUT_DIR)
+endef
+
+define conan_build
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 	&& conan build . \
 		--build-folder=$(BUILD_OUT_DIR) \
 	&& echo $(1) > $(BUILD_OUT_DIR)/build_type
@@ -233,7 +237,8 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,release)
 else
 	-rm -rf $(PROJECT_DIR)/out
-	$(call conan_compile_with_build_type,Release)
+	$(call conan_install,Release)
+	$(call conan_build)
 endif
 
 debug: ## | Compile and link the source code inside the container into binaries with debug symbols.
@@ -241,7 +246,8 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,debug)
 else ifeq ($(NEEDS_REBUILD), 1)
 	-rm -rf $(PROJECT_DIR)/out
-	$(call conan_compile_with_build_type,Debug)
+	$(call conan_install,Debug)
+	$(call conan_build)
 else
 	echo "Nothing to do."
 endif
@@ -285,6 +291,7 @@ tidy: ## | Run clang-tidy on the source files in "src" and "tests". -- Requires:
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,tidy)
 else
+	$(call conan_install,Release)
 	clang-tidy -p=out/build $(wildcard src/*.cpp) $(wildcard tests/*.cpp)
 endif
 
