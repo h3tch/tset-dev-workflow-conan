@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.12.1 - 2020-11-24
+### Fixed
+- Pass environment variables to cmake every time it is called. This way environment
+  variables can be changed inside a container without restarting it.
+
 ## 0.12.0 - 2020-11-24
 ### Added
 - Add clang-tidy make target to check all source files in ./src and ./tests.

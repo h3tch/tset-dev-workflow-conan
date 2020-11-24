@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.12.0
+CURRENT_WORKFLOW_VERSION := 0.12.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -120,6 +120,7 @@ ifeq (,$(wildcard config))
 $(info WARNING No 'config' file found.)
 endif
 -include config
+export
 -include secret
 
 
@@ -169,38 +170,34 @@ endif
 endif
 
 define conan_compile_with_build_type
-	source config \
-		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-		&& conan install . \
-			--update -s build_type=$(1) \
-			--install-folder=$(BUILD_OUT_DIR) \
-		&& conan build . \
-			--build-folder=$(BUILD_OUT_DIR) \
-		&& echo $(1) > $(BUILD_OUT_DIR)/build_type
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
+	&& conan install . \
+		--update -s build_type=$(1) \
+		--install-folder=$(BUILD_OUT_DIR) \
+	&& conan build . \
+		--build-folder=$(BUILD_OUT_DIR) \
+	&& echo $(1) > $(BUILD_OUT_DIR)/build_type
 endef
 
 define conan_create_package
-	source config \
-		&& conan package . \
-			--build-folder=$(BUILD_OUT_DIR) \
-			--package-folder=$(PACKAGE_OUT_DIR)
+	conan package . \
+		--build-folder=$(BUILD_OUT_DIR) \
+		--package-folder=$(PACKAGE_OUT_DIR)
 endef
 
 define conan_test_package
-	source config \
-		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			--force --package-folder=$(PACKAGE_OUT_DIR) \
-		&& conan test tests $(CONAN_RECIPE) \
-			--test-build-folder=$(TESTS_OUT_DIR)
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
+		--force --package-folder=$(PACKAGE_OUT_DIR) \
+	&& conan test tests $(CONAN_RECIPE) \
+		--test-build-folder=$(TESTS_OUT_DIR)
 endef
 
 define conan_upload_package
-	source config \
-		&& conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-		&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-			--force --package-folder=$(PACKAGE_OUT_DIR) \
-		&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
+		--force --package-folder=$(PACKAGE_OUT_DIR) \
+	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
 
