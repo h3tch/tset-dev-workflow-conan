@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.12.3
+CURRENT_WORKFLOW_VERSION := 0.12.4
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -178,9 +178,8 @@ endef
 
 define conan_build
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan build . \
-		--build-folder=$(BUILD_OUT_DIR) \
-	&& echo $(1) > $(BUILD_OUT_DIR)/build_type
+	&& mkdir -p $(BUILD_OUT_DIR) && echo $(1) > $(BUILD_OUT_DIR)/build_type \
+	&& conan build . --build-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_create_package
@@ -208,8 +207,8 @@ endef
 # MAKEFILE TARGETS
 
 .DEFAULT_GOAL := help
-.PHONY:  help build rebuild release debug test package test-package upload shell upgrade-developer-workflow
-.SILENT: help build rebuild release debug test package test-package upload shell upgrade-developer-workflow
+.PHONY:  help build rebuild release debug test package test-package upload shell tidy upgrade-developer-workflow vscode
+.SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-developer-workflow vscode
 
 help: ## | Show this help.
 	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -238,7 +237,7 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 else
 	-rm -rf $(PROJECT_DIR)/out
 	$(call conan_install,Release)
-	$(call conan_build)
+	$(call conan_build,Release)
 endif
 
 debug: ## | Compile and link the source code inside the container into binaries with debug symbols.
@@ -247,7 +246,7 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 else ifeq ($(NEEDS_REBUILD), 1)
 	-rm -rf $(PROJECT_DIR)/out
 	$(call conan_install,Debug)
-	$(call conan_build)
+	$(call conan_build,Debug)
 else
 	echo "Nothing to do."
 endif
