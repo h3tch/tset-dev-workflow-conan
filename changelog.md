@@ -1,6 +1,15 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.12.5 - 2020-12-02
+### Changed
+- Specify conan include folders as system include folders to suppress
+  warnings of external dependencies.
+
+## 0.12.4 - 2020-11-25
+### Fixed
+- CMake unit test configuration failed when the PROJECT_TYPE is EXECUTABLE.
+
 ## 0.12.3 - 2020-11-24
 ### Fixed
 - Install conan dependencies before executing clang-tidy.

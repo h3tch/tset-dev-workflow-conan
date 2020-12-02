@@ -51,7 +51,8 @@ if (${HAS_SOURCE_FILES})
     endif ()
     target_include_directories ($ENV{PROJECT_NAME}
         PUBLIC  include
-        PRIVATE src/include ${CONFIG_INCLUDE_DIRS} ${CONAN_INCLUDE_DIRS})
+        PRIVATE src/include ${CONFIG_INCLUDE_DIRS})
+    target_include_directories ($ENV{PROJECT_NAME} SYSTEM PRIVATE ${CONAN_INCLUDE_DIRS})
     target_link_directories ($ENV{PROJECT_NAME} PRIVATE ${CONAN_LIB_DIRS})
     target_link_libraries ($ENV{PROJECT_NAME} ${CONAN_LIBS})
     target_compile_options ($ENV{PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
@@ -64,8 +65,8 @@ if (${HAS_SOURCE_FILES})
 else ()
     message (STATUS "Create a header only library")
     add_library ($ENV{PROJECT_NAME} INTERFACE)
-    target_include_directories ($ENV{PROJECT_NAME}
-        INTERFACE include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
+    target_include_directories ($ENV{PROJECT_NAME} INTERFACE include ${CMAKE_CURRENT_BINARY_DIR})
+    target_include_directories ($ENV{PROJECT_NAME} SYSTEM PRIVATE ${CONAN_INCLUDE_DIRS})
 endif ()
 
 # ADD UNIT TESTS

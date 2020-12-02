@@ -65,8 +65,8 @@ foreach (file ${TEST_FILES})
             $ENV{PROJECT_DIR}/include
             $ENV{PROJECT_DIR}/src/include
             $ENV{PROJECT_DIR}/tests/include
-            ${CONFIG_INCLUDE_DIRS}
-            ${CONAN_INCLUDE_DIRS})
+            ${CONFIG_INCLUDE_DIRS})
+    target_include_directories (${name} SYSTEM PRIVATE ${CONAN_INCLUDE_DIRS})
     if (${HAS_PCH_FILES})
         if (DEFINED first_target)
             target_precompile_headers (${name} REUSE_FROM ${first_target})
