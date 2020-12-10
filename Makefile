@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.12.5
+CURRENT_WORKFLOW_VERSION := 0.13.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -256,6 +256,11 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,test)
 else
 	LD_LIBRARY_PATH=$(BUILD_OUT_DIR)/bin make --directory $(BUILD_OUT_DIR) test
+	for filename in $(PROJECT_DIR)/tests/test*.sh; do \
+		[ -e "$${filename}" ] || continue; \
+		echo -e "\033[1m`basename $${filename}`\033[0m ... START"; \
+		$${filename} || exit 1; \
+	done
 endif
 
 package: ## | Build a conan package out of the binaries. -- Requires: release/debug

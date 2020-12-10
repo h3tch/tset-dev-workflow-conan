@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.13.0 - 2020-12-10
+### Added
+- Support executing test scripts in the "tests" folder.
+
 ## 0.12.5 - 2020-12-02
 ### Changed
 - Specify conan include folders as system include folders to suppress
