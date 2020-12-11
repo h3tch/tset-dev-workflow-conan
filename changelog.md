@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.13.1 - 2020-12-11
+### Fixed
+- Fix CMake interface include bug.
+
 ## 0.13.0 - 2020-12-10
 ### Added
 - Support executing test scripts in the "tests" folder.

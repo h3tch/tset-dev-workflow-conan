@@ -65,8 +65,9 @@ if (${HAS_SOURCE_FILES})
 else ()
     message (STATUS "Create a header only library")
     add_library ($ENV{PROJECT_NAME} INTERFACE)
-    target_include_directories ($ENV{PROJECT_NAME} INTERFACE include ${CMAKE_CURRENT_BINARY_DIR})
-    target_include_directories ($ENV{PROJECT_NAME} SYSTEM PRIVATE ${CONAN_INCLUDE_DIRS})
+    target_include_directories ($ENV{PROJECT_NAME}
+        INTERFACE include ${CMAKE_CURRENT_BINARY_DIR} ${CONAN_INCLUDE_DIRS})
+
 endif ()
 
 # ADD UNIT TESTS

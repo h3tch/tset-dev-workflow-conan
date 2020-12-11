@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.13.0
+CURRENT_WORKFLOW_VERSION := 0.13.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
