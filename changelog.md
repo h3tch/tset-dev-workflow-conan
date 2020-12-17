@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.14.0 - 2020-12-17
+### Added
+- Support conan user channel overwrites.
+
 ## 0.13.1 - 2020-12-11
 ### Fixed
 - Fix CMake interface include bug.
