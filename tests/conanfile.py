@@ -13,8 +13,10 @@ class CppDevContainerTestConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file('config'))
+        CONAN_USER = config.get('CONAN_USER', '')
+        CONAN_CHANNEL = config.get('CONAN_CHANNEL', '')
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
-        CppDevContainerTestConan.requires = CONAN_REQUIRE.split(',') if len(CONAN_REQUIRE) > 0 else None
+        CppDevContainerConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
         super().__init__(*args, **kwargs)
 
     def build(self):
@@ -43,3 +45,39 @@ def load_config_file(filename):
                     v = v[1:-1]
 
             yield k, v
+
+def parse_requirement(requirement):
+    package, version, user, channel = None, None, None, None
+
+    package_repo = requirement.split('@')
+
+    if len(package_repo) >= 1:
+        package_version = package_repo[0].split('/')
+        if len(package_version) >= 1:
+            package = package_version[0]
+        if len(package_version) >= 2:
+            version = package_version[1]
+
+    if len(package_repo) >= 2:
+        user_channel = package_repo[1].split('/')
+        if len(user_channel) >= 1:
+            user = user_channel[0]
+        if len(user_channel) >= 2:
+            channel = user_channel[1]
+    
+    return package, version, user, channel
+
+
+def set_empty_user_channel(requirement, user, default_channel):
+    package, version, user_name, channel = parse_requirement(requirement)
+
+    if user_name == user and channel is None:
+        channel = default_channel
+
+    return f'{package}/{version}@{user_name}/{channel}'
+
+
+def parse_requirements(requirements, user, default_channel):
+    requirements = [set_empty_user_channel(r, user, default_channel)
+                    for r in requirements.split(',') if len(r) > 0]
+    return requirements if len(requirements) > 0 else None
