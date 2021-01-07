@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.14.0
+CURRENT_WORKFLOW_VERSION := 0.15.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -134,6 +134,7 @@ CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
 CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
 CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),testing)
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
+CONAN_RECIPE_ALIAS := $(if $(PROJECT_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL),)
 CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
 IS_INSIDE_CONTAINER := $(shell counter=$$(awk -F/ '$$2 == "docker"' /proc/self/cgroup | wc -l); if [ $$counter -gt 0 ]; then echo 1; fi)
 PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
@@ -199,8 +200,15 @@ endef
 define conan_upload_package
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
-		--force --package-folder=$(PACKAGE_OUT_DIR) \
+	    --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
+
+	if [[ ! -z "$$CONAN_RECIPE_ALIAS" ]]; then \
+		conan alias $(CONAN_RECIPE_ALIAS) $(CONAN_RECIPE); \
+	    conan upload $(CONAN_RECIPE_ALIAS) -r=$(CONAN_SERVER_NAME) --all --check; \
+	else \
+	    echo -e "\033[33mCannot upload alias $$CONAN_RECIPE_ALIAS.\033[0m"; \
+	fi
 endef
 
 
