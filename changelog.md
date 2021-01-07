@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.0 - 2021-01-07
+### Added
+- Add support for conan recipe aliases.
+
 ## 0.14.0 - 2020-12-17
 ### Added
 - Support conan user channel overwrites.
