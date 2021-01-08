@@ -106,8 +106,16 @@ def set_empty_user_channel(requirement, user, default_channel):
 
     if user_name == user and channel is None:
         channel = default_channel
+    
+    if version is not None:
+        package = f'{package}/{version}'
 
-    return f'{package}/{version}@{user_name}/{channel}'
+    if user_name is not None:
+        package = f'{package}@{user_name}'
+        if channel is not None:
+            package = f'{package}/{channel}'
+
+    return package
 
 
 def parse_requirements(requirements, user, default_channel):
