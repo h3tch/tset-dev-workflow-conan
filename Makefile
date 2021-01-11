@@ -137,8 +137,15 @@ else ifeq ($(GIT_BRANCH_NAME), main)
 	DEFAULT_CONAN_CHANNEL := stable
 else ifeq ($(GIT_BRANCH_NAME), testing)
 	DEFAULT_CONAN_CHANNEL := testing
+else ifeq ($(GIT_BRANCH_NAME), develop)
+	DEFAULT_CONAN_CHANNEL := develop
 else
 	DEFAULT_CONAN_CHANNEL := develop
+	DEFAULT_CONAN_UPLOAD_CHANNEL := $(or $(DEVELOPER_NAME),demo)
+endif
+
+ifeq ($(DEFAULT_CONAN_UPLOAD_CHANNEL),demo)
+$(info WARNING Using fallback conan upload channel 'demo'. Please export variable DEVELOPER_NAME to use a personal developer channel.)
 endif
 
 CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
@@ -146,6 +153,7 @@ CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://lo
 CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
 CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
 CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
+CONAN_UPLOAD_CHANNEL := $(or $(FORCE_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
 CONAN_RECIPE_ALIAS := $(if $(PROJECT_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL),)
 CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
@@ -155,6 +163,7 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
+	-e DEVELOPER_NAME=$(DEVELOPER_NAME) \
 	-e CONAN_USER=$(CONAN_USER) \
 	-e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
 	-e CONAN_CHANNEL=$(CONAN_CHANNEL) \
@@ -204,7 +213,7 @@ endef
 
 define conan_test_package
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
 		--force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan test tests $(CONAN_RECIPE) \
 		--test-build-folder=$(TESTS_OUT_DIR)
@@ -212,7 +221,7 @@ endef
 
 define conan_upload_package
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
 	    --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 
