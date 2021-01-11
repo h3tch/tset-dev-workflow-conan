@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.3 - 2021-01-11
+### Fixed
+- Use different download and upload conan channels for custom packages.
+  This ensures that a developer can test changes in multiple packages.
+
 ## 0.15.2 - 2021-01-11
 ### Fixed
 - Use conan environment variables as default values for missing config entries.
