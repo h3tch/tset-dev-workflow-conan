@@ -25,8 +25,8 @@ class CppDevContainerConan(ConanFile):
         CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
-        CONAN_USER = config.get('CONAN_USER', '')
-        CONAN_CHANNEL = config.get('CONAN_CHANNEL', '')
+        CONAN_USER = config.get('CONAN_USER', os.environ.get('CONAN_USER', ''))
+        CONAN_CHANNEL = config.get('CONAN_CHANNEL', os.environ.get('CONAN_CHANNEL', ''))
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
         CppDevContainerConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
 

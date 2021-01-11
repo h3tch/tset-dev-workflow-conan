@@ -13,8 +13,8 @@ class CppDevContainerTestConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file('config'))
-        CONAN_USER = config.get('CONAN_USER', '')
-        CONAN_CHANNEL = config.get('CONAN_CHANNEL', '')
+        CONAN_USER = config.get('CONAN_USER', os.environ.get('CONAN_USER', ''))
+        CONAN_CHANNEL = config.get('CONAN_CHANNEL', os.environ.get('CONAN_CHANNEL', ''))
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
         CppDevContainerConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
         super().__init__(*args, **kwargs)
