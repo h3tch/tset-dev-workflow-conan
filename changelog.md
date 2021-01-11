@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.2 - 2021-01-11
+### Fixed
+- Use conan environment variables as default values for missing config entries.
+
 ## 0.15.1 - 2021-01-08
 ### Fixed
 - Fix default chanel insertion for public conan packages.
