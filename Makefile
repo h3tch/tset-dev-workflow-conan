@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.15.3
+CURRENT_WORKFLOW_VERSION := 0.15.4
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -126,11 +126,12 @@ export
 
 # COMPILE VARIABLES
 
+DEVELOPER_NAME ?= demo
 PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
 PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0)
 PROJECT_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
 
-GIT_BRANCH_NAME := $(shell git symbolic-ref --short HEAD)
+GIT_BRANCH_NAME ?= $(shell git symbolic-ref --short HEAD)
 ifeq ($(GIT_BRANCH_NAME), master)
 	DEFAULT_CONAN_CHANNEL := stable
 else ifeq ($(GIT_BRANCH_NAME), main)
@@ -141,7 +142,7 @@ else ifeq ($(GIT_BRANCH_NAME), develop)
 	DEFAULT_CONAN_CHANNEL := develop
 else
 	DEFAULT_CONAN_CHANNEL := develop
-	DEFAULT_CONAN_UPLOAD_CHANNEL := $(or $(DEVELOPER_NAME),demo)
+	DEFAULT_CONAN_UPLOAD_CHANNEL := $(DEVELOPER_NAME)
 endif
 
 ifeq ($(DEFAULT_CONAN_UPLOAD_CHANNEL),demo)

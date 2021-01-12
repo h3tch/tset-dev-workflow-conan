@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.4 - 2021-01-12
+### Fixed
+- Set DEVELOPER_NAME to 'demo' by default for the CI/CD execution.
+
 ## 0.15.3 - 2021-01-11
 ### Fixed
 - Use different download and upload conan channels for custom packages.
