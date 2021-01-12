@@ -16,7 +16,7 @@ class CppDevContainerTestConan(ConanFile):
         CONAN_USER = config.get('CONAN_USER', os.environ.get('CONAN_USER', ''))
         CONAN_CHANNEL = config.get('CONAN_CHANNEL', os.environ.get('CONAN_CHANNEL', ''))
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
-        CppDevContainerConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
+        CppDevContainerTestConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
         super().__init__(*args, **kwargs)
 
     def build(self):
