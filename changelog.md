@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.5 - 2021-01-12
+### Fixed
+- Fix syntax bug in tests/conanfile.py.
+
 ## 0.15.4 - 2021-01-12
 ### Fixed
 - Set DEVELOPER_NAME to 'demo' by default for the CI/CD execution.
