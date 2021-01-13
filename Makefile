@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.15.4
+CURRENT_WORKFLOW_VERSION := 0.15.6
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -131,7 +131,9 @@ PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
 PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0)
 PROJECT_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
 
-GIT_BRANCH_NAME ?= $(shell git symbolic-ref --short HEAD)
+ifeq ($(GIT_BRANCH_NAME),)
+	GIT_BRANCH_NAME := $(shell git symbolic-ref --short HEAD)
+endif
 ifeq ($(GIT_BRANCH_NAME), master)
 	DEFAULT_CONAN_CHANNEL := stable
 else ifeq ($(GIT_BRANCH_NAME), main)
@@ -164,6 +166,7 @@ DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	--network host \
 	--env-file $(PROJECT_DIR)/config \
+	-e GIT_BRANCH_NAME=$(GIT_BRANCH_NAME) \
 	-e DEVELOPER_NAME=$(DEVELOPER_NAME) \
 	-e CONAN_USER=$(CONAN_USER) \
 	-e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
@@ -172,6 +175,8 @@ DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	-w=$(CONTAINER_DIR) \
 	--name $(PROJECT_NAME) \
 	$(DOCKER_IMAGE)
+
+# $(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
 older_than = $(shell if [[ "$$(find $(1) -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -f2- -d" ")" -ot "$$(find $(2) -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -f2- -d" ")" ]]; then echo 1; fi)
 HAS_UPDATE_IN_INCLUDE := $(call older_than,$(BUILD_OUT_DIR),$(PROJECT_DIR)/include)
