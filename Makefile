@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 0.15.6
+CURRENT_WORKFLOW_VERSION := 0.15.7
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -160,7 +160,6 @@ CONAN_UPLOAD_CHANNEL := $(or $(FORCE_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_UPLOA
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL)
 CONAN_RECIPE_ALIAS := $(if $(PROJECT_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
 CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
-IS_INSIDE_CONTAINER := $(shell counter=$$(awk -F/ '$$2 == "docker"' /proc/self/cgroup | wc -l); if [ $$counter -gt 0 ]; then echo 1; fi)
 PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
 DOCKER_BUILD_NO_CACHE ?= --no-cache
 DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
@@ -168,6 +167,7 @@ DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	--env-file $(PROJECT_DIR)/config \
 	-e GIT_BRANCH_NAME=$(GIT_BRANCH_NAME) \
 	-e DEVELOPER_NAME=$(DEVELOPER_NAME) \
+	-e IS_INSIDE_CONTAINER=1 \
 	-e CONAN_USER=$(CONAN_USER) \
 	-e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
 	-e CONAN_CHANNEL=$(CONAN_CHANNEL) \

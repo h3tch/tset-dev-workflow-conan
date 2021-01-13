@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.15.7 - 2021-01-13
+### Fixed
+- Fix IS_INSIDE_CONTAINER bug of some docker versions.
+
 ## 0.15.6 - 2021-01-13
 ### Fixed
 - Pass GIT_BRANCH_NAME to container.
