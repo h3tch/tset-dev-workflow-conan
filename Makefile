@@ -217,14 +217,6 @@ define conan_create_package
 		--package-folder=$(PACKAGE_OUT_DIR)
 endef
 
-define conan_test_package
-	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
-		--force --package-folder=$(PACKAGE_OUT_DIR) \
-	&& conan test tests $(CONAN_RECIPE) \
-		--test-build-folder=$(TESTS_OUT_DIR)
-endef
-
 define conan_upload_package
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
@@ -304,13 +296,6 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,package)
 else
 	$(call conan_create_package)
-endif
-
-test-package: ## | Execute the unit test linking with the conan package. -- Requires: release/debug, package
-ifneq ($(IS_INSIDE_CONTAINER), 1)
-	$(call execute_make_target_in_container,test-package)
-else
-	$(call conan_test_package)
 endif
 
 upload: ## | Upload the packages to the package server (` CONAN_USER_PASSWORD=<password: default CONAN_USER> make upload`). -- Requires: release/debug, package
