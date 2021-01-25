@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.0 - 2021-01-25
+### Added
+- Provide `INSTALLED_CONAN_PACKAGES` variable to list the currently installed conan packages.
+- Provide `UNIQUE_BUILD_ID` to uniquely identify a build. This is useful for auto build systems.
+
 ## 1.0.0 - 2021-01-22
 ### Removed
 - Remove test-package target.

@@ -21,8 +21,8 @@ class CppDevContainerConan(ConanFile):
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join(current_directory, 'config')))
 
-        CppDevContainerConan.name = config['PROJECT_NAME']
-        CppDevContainerConan.version = config['PROJECT_VERSION']
+        CppDevContainerConan.name = os.environ.get('PROJECT_NAME', config['PROJECT_NAME'])
+        CppDevContainerConan.version = os.environ.get('PROJECT_VERSION', config['PROJECT_VERSION'])
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
         CONAN_USER = config.get('CONAN_USER', os.environ.get('CONAN_USER', ''))

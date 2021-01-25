@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 1.0.0
+CURRENT_WORKFLOW_VERSION := 1.1.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -127,8 +127,9 @@ export
 # COMPILE VARIABLES
 
 DEVELOPER_NAME ?= demo
+UNIQUE_BUILD_ID := $(or $(UNIQUE_BUILD_ID),0)
 PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
-PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0)
+PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(UNIQUE_BUILD_ID)
 PROJECT_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
 
 ifeq ($(GIT_BRANCH_NAME),)
@@ -208,7 +209,7 @@ endef
 define conan_build
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
 	&& mkdir -p $(BUILD_OUT_DIR) && echo $(1) > $(BUILD_OUT_DIR)/build_type \
-	&& conan build . --build-folder=$(BUILD_OUT_DIR)
+	&& INSTALLED_CONAN_PACKAGES=$$(conan search | grep "/" | tr '\n' ';') conan build . --build-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_create_package
