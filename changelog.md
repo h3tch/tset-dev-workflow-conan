@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.2.0 - 2021-01-25
+### Added
+- Add PARENT_UNIQUE_BUILD_ID for multi-project pipelines.
+
 ## 1.1.0 - 2021-01-25
 ### Added
 - Provide `INSTALLED_CONAN_PACKAGES` variable to list the currently installed conan packages.
