@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 1.2.0
+CURRENT_WORKFLOW_VERSION := 1.2.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -187,6 +187,9 @@ HAS_UPDATE = $(or $(HAS_UPDATE_IN_INCLUDE),$(HAS_UPDATE_IN_SRC),$(HAS_UPDATE_IN_
 NEEDS_REBUILD = $(if $(or $(filter Release,$(LATEST_BUILD_TYPE)), $(filter 1,$(HAS_UPDATE))),1,)
 
 define execute_make_target_in_container
+	(docker stop $(PROJECT_NAME) &> /dev/null && docker rm $(PROJECT_NAME) &> /dev/null) \
+		&& echo "Had to stop and remove container $(PROJECT_NAME)." \
+		|| echo "Run make $(1) in container $(PROJECT_NAME)."
 	$(DOCKER_RUN_COMMAND) /bin/bash -c "make $(1)"
 endef
 
