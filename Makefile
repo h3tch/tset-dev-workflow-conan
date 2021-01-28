@@ -104,7 +104,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 1.2.1
+CURRENT_WORKFLOW_VERSION := 1.3.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -130,7 +130,9 @@ DEVELOPER_NAME ?= demo
 UNIQUE_BUILD_ID := $(or $(PARENT_UNIQUE_BUILD_ID),$(UNIQUE_BUILD_ID),0)
 PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
 PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(UNIQUE_BUILD_ID)
-PROJECT_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
+PROJECT_MAJOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
+PROJECT_MINOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]' | head -1).X
+PROJECT_PATCH_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1).X
 
 ifeq ($(GIT_BRANCH_NAME),)
 	GIT_BRANCH_NAME := $(shell git symbolic-ref --short HEAD)
@@ -159,7 +161,9 @@ CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),
 CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
 CONAN_UPLOAD_CHANNEL := $(or $(FORCE_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL)
-CONAN_RECIPE_ALIAS := $(if $(PROJECT_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
+CONAN_RECIPE_MAJOR_ALIAS := $(if $(PROJECT_MAJOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MAJOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
+CONAN_RECIPE_MINOR_ALIAS := $(if $(PROJECT_MINOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MINOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
+CONAN_RECIPE_PATCH_ALIAS := $(if $(PROJECT_PATCH_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_PATCH_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
 CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
 PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
 DOCKER_BUILD_NO_CACHE ?= --no-cache
@@ -226,12 +230,14 @@ define conan_upload_package
 	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
 	    --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
+endef
 
-	if [[ ! -z "$$CONAN_RECIPE_ALIAS" ]]; then \
-		conan alias $(CONAN_RECIPE_ALIAS) $(CONAN_RECIPE); \
-	    conan upload $(CONAN_RECIPE_ALIAS) -r=$(CONAN_SERVER_NAME) --all --check; \
+define conan_upload_alias
+	if [[ ! -z "$(1)" ]]; then \
+		conan alias $(1) $(CONAN_RECIPE); \
+	    conan upload $(1) -r=$(CONAN_SERVER_NAME) --all --check; \
 	else \
-	    echo -e "\033[33mCannot upload alias $$CONAN_RECIPE_ALIAS.\033[0m"; \
+	    echo -e "\033[33mCannot upload alias $(1).\033[0m"; \
 	fi
 endef
 
@@ -307,6 +313,9 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,upload)
 else
 	$(call conan_upload_package)
+	$(call conan_upload_alias,$(CONAN_RECIPE_MAJOR_ALIAS))
+	$(call conan_upload_alias,$(CONAN_RECIPE_MINOR_ALIAS))
+	$(call conan_upload_alias,$(CONAN_RECIPE_PATCH_ALIAS))
 endif
 
 shell: ## | Start a terminal inside the container.

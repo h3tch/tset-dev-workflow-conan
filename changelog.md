@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.3.0 - 2021-01-28
+### Added
+- Also upload package aliases for 1.0.X and 1.0.0.X.
+
 ## 1.2.1 - 2021-01-26
 ### Added
 - Make sure containers are stoped and removed before running a new instance.
