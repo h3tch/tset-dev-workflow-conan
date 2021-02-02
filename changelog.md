@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.4.0 - 2021-02-01
+### Added
+- Add support to keep the `.conan` folder in the project. This feature can be activated
+  by setting CONAN_KEEP_PACKAGE.
+
 ## 1.3.0 - 2021-01-28
 ### Added
 - Also upload package aliases for 1.0.X and 1.0.0.X.
