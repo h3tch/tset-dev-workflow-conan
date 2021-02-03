@@ -1,10 +1,14 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 1.4.0 - 2021-02-01
+## 1.4.0 - 2021-02-03
 ### Added
 - Add support to keep the `.conan` folder in the project. This feature can be activated
   by setting CONAN_KEEP_PACKAGE.
+- Make sure packages cannot be compiled on a main branch if
+  the version already exists in the remote repo.
+### Fixed
+- Fixed `conanfile.py` config variables.
 
 ## 1.3.0 - 2021-01-28
 ### Added

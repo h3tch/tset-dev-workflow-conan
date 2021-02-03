@@ -12,21 +12,21 @@ is_header_only_library = len(glob.glob(os.path.join(current_directory, "src", "*
 class CppDevContainerConan(ConanFile):
     license = "Proprietary"
     generators = "cmake"
-    exports = "config"
+    exports = ".conan/.env"
     exports_sources = "include/*", "src/*", "tests/*", "CMakeLists.txt", "LICENSE"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False]}
     default_options = {"shared": True}
 
     def __init__(self, *args, **kwargs):
-        config = dict(load_config_file(os.path.join(current_directory, 'config')))
+        config = dict(load_config_file(os.path.join(current_directory, '.conan', '.env')))
 
-        CppDevContainerConan.name = os.environ.get('PROJECT_NAME', config['PROJECT_NAME'])
-        CppDevContainerConan.version = os.environ.get('PROJECT_VERSION', config['PROJECT_VERSION'])
+        CppDevContainerConan.name = config['PROJECT_NAME']
+        CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
-        CONAN_USER = config.get('CONAN_USER', os.environ.get('CONAN_USER', ''))
-        CONAN_CHANNEL = config.get('CONAN_CHANNEL', os.environ.get('CONAN_CHANNEL', ''))
+        CONAN_USER = config.get('CONAN_USER', '')
+        CONAN_CHANNEL = config.get('CONAN_CHANNEL', '')
         CONAN_REQUIRE = config.get('CONAN_REQUIRE', '')
         CppDevContainerConan.requires = parse_requirements(CONAN_REQUIRE, CONAN_USER, CONAN_CHANNEL)
 
