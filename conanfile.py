@@ -28,7 +28,7 @@ class CppDevContainerConan(ConanFile):
         user = config.get('CONAN_USER', '')
         channel = config.get('CONAN_CHANNEL', '')
         require = config.get('CONAN_REQUIRE', '')
-        CppDevContainerConan.requires = require.replace('{user}', user).replace('{channel}', channel)
+        CppDevContainerConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
 
         super().__init__(*args, **kwargs)
 

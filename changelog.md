@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.1 - 2021-02-04
+### Fixed
+- Fix conanfile.py for multiple requirements.
+
 ## 2.0.0 - 2021-02-04
 ### Changes
 - Need to indicate the usage of default conan user and channel explicitly
