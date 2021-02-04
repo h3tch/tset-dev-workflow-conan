@@ -273,8 +273,8 @@ endef
 # TARGETS
 
 .DEFAULT_GOAL := help
-.PHONY:  help build rebuild release debug test package test-package upload shell tidy upgrade-developer-workflow vscode
-.SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-developer-workflow vscode
+.PHONY:  help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode
+.SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode
 
 help: ## | Show this help.
 	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
