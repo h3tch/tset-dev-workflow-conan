@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.0 - 2021-02-04
+### Changes
+- Need to indicate the usage of default conan user and channel explicitly
+  (e.g. `name/1.2.3` -> `name/1.2.3@{user}/{channel}`).
+
 ## 1.4.0 - 2021-02-03
 ### Added
 - Add support to keep the `.conan` folder in the project. This feature can be activated

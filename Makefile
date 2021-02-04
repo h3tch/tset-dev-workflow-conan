@@ -11,28 +11,30 @@
 ## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-## WORKFLOW_VERSION=0.8.0
+## WORKFLOW_VERSION=2.0.0
 ## DOCKER_BASE_IMAGE=h3tch/dev-workflow:1.0.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
 ## CONAN_SERVER_NAME=conan-server
 ## CONAN_SERVER_URL=http://localhost:9300
 ## CONAN_CHANNEL=testing
-## CONAN_REQUIRE=boost/1.74.0,stdc/1.0.0@demo/stable
+## CONAN_REQUIRE=boost/1.74.0,stdc/1.0.0@demo/stable,mathc/1.X@{user}/{channel}
+## CONAN_KEEP_PACKAGE=1
 ## ```
 ##
 ## Most of these variables should be self-explaining. Some will be described in detail:
 ##
-## | Variable Name     | Description |
-## |-------------------|-------------|
-## | WORKFLOW_VERSION  | The developer workflow version to be used. When you execute `make upgrade-developer-workflow`, this version will be downloaded. Note that this will overwrite the existing dev workflow files. |
-## | DOCKER_BASE_IMAGE | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images should in some way be derived from the "tset-conan-base" image. |
-## | DOCKER_IMAGE      | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
-## | CONAN_USER        | The conan user for package search and upload. |
-## | CONAN_SERVER_NAME | The name of the conan server from where to down and upload internal packages. |
-## | CONAN_SERVER_URL  | The url of the conan server from where to down and upload internal packages. |
-## | CONAN_CHANNEL     | The conan channel from where to down and upload internal packages. |
-## | CONAN_REQUIRE     | Additional conan requirements as a comma separated list. |
+## | Variable Name      | Description |
+## |--------------------|-------------|
+## | WORKFLOW_VERSION   | The developer workflow version to be used. When you execute `make upgrade-developer-workflow`, this version will be downloaded. Note that this will overwrite the existing dev workflow files. |
+## | DOCKER_BASE_IMAGE  | The docker base image name to be passed to `docker build` as a `build-arg`. Note, that all dev images should in some way be derived from the "tset-conan-base" image. |
+## | DOCKER_IMAGE       | The docker image to be created by the build target and used by the other targets (release, test, package, ...). |
+## | CONAN_USER         | The conan user for package search and upload. |
+## | CONAN_SERVER_NAME  | The name of the conan server from where to down and upload internal packages. |
+## | CONAN_SERVER_URL   | The url of the conan server from where to down and upload internal packages. |
+## | CONAN_CHANNEL      | The conan channel from where to down and upload internal packages. |
+## | CONAN_REQUIRE      | Additional conan requirements as a comma separated list. 1.X indicates the most recent major version. {user} means CONAN_USER will be inserted here. {channel} means CONAN_CHANNEL will be inserted here. |
+## | CONAN_KEEP_PACKAGE | The conan repository path will be set the the root folder of the project. The repository will hence not be deleted when the container closes. |
 ## 
 ## ### The Dockerfile explained
 ## 
@@ -104,7 +106,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 1.4.0
+CURRENT_WORKFLOW_VERSION := 2.0.0
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -365,9 +367,9 @@ else
 	clang-tidy -p=out/build $(wildcard src/*.cpp) $(wildcard tests/*.cpp)
 endif
 
-upgrade-developer-workflow: ## | Upgrade to a different developer workflow version.
+upgrade-workflow: ## | Upgrade to a different developer workflow version.
 ifneq ($(IS_INSIDE_CONTAINER), 1)
-	$(call execute_make_target_in_container,upgrade-developer-workflow)
+	$(call execute_make_target_in_container,upgrade-workflow)
 else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	echo "Upgrade developer workflow from $(CURRENT_WORKFLOW_VERSION) to $(WORKFLOW_VERSION)."
 	git config --global advice.detachedHead false
