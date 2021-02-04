@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.3 - 2021-02-04
+### Fixed
+- Fix CI conanfile.py bug.
+
 ## 2.0.2 - 2021-02-04
 ### Fixed
 - Silence `upgrade-workflow` target.

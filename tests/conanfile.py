@@ -12,11 +12,12 @@ class CppDevContainerTestConan(ConanFile):
     generators = "cmake"
 
     def __init__(self, *args, **kwargs):
-        config = dict(load_config_file(os.path.join('.conan', '.env')))
-        user = config.get('CONAN_USER', '')
-        channel = config.get('CONAN_CHANNEL', '')
+        config = dict(load_config_file(os.path.join('out', '.env')))
         require = config.get('CONAN_REQUIRE', '')
-        CppDevContainerTestConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
+        if require is not None and len(require) > 0:
+            user = config.get('CONAN_USER', '')
+            channel = config.get('CONAN_CHANNEL', '')
+            CppDevContainerTestConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
         super().__init__(*args, **kwargs)
 
     def build(self):

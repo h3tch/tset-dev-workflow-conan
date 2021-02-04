@@ -106,7 +106,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 2.0.2
+CURRENT_WORKFLOW_VERSION := 2.0.3
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -159,6 +159,7 @@ ifeq ($(DEFAULT_CONAN_UPLOAD_CHANNEL),demo)
 $(info WARNING Using fallback conan upload channel 'demo'. Please export variable DEVELOPER_NAME to use a personal developer channel.)
 endif
 
+CONAN_CONFIG_FILE := out/.env
 CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
 CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
 CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
@@ -188,16 +189,6 @@ DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 
 # $(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
-CONAN_CONFIG_FILE := .conan/.env
-$(shell mkdir -p .conan)
-$(file > $(CONAN_CONFIG_FILE),PROJECT_NAME=$(PROJECT_NAME))
-$(file >> $(CONAN_CONFIG_FILE),PROJECT_VERSION=$(PROJECT_VERSION))
-$(file >> $(CONAN_CONFIG_FILE),PROJECT_DESCRIPTION=$(PROJECT_DESCRIPTION))
-$(file >> $(CONAN_CONFIG_FILE),PROJECT_URL=$(PROJECT_URL))
-$(file >> $(CONAN_CONFIG_FILE),CONAN_USER=$(CONAN_USER))
-$(file >> $(CONAN_CONFIG_FILE),CONAN_CHANNEL=$(CONAN_CHANNEL))
-$(file >> $(CONAN_CONFIG_FILE),CONAN_REQUIRE=$(CONAN_REQUIRE))
-
 
 # SETUP CONAN REPO
 
@@ -226,6 +217,17 @@ endif # ($(IS_INSIDE_CONTAINER), 1)
 
 
 # MACROS
+
+define generate_conan_env_file
+	mkdir -p out
+	echo PROJECT_NAME=$(PROJECT_NAME) > $(CONAN_CONFIG_FILE)
+	echo PROJECT_VERSION=$(PROJECT_VERSION) >> $(CONAN_CONFIG_FILE)
+	echo PROJECT_DESCRIPTION=$(PROJECT_DESCRIPTION) >> $(CONAN_CONFIG_FILE)
+	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
+	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
+	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
+	echo CONAN_REQUIRE=$(CONAN_REQUIRE) >> $(CONAN_CONFIG_FILE)
+endef
 
 define execute_make_target_in_container
 	(docker stop $(PROJECT_NAME) &> /dev/null && docker rm $(PROJECT_NAME) &> /dev/null) \
@@ -305,6 +307,7 @@ else
 ifeq ($(PAKAGE_ALREADY_EXISTS), 1)
 	echo -e "\033[31mThe conan package $(CONAN_RECIPE) already exists.\033[0m"
 else
+	$(call generate_conan_env_file)
 	$(call conan_install,Release)
 	$(call conan_build,Release)
 endif # ($(PAKAGE_ALREADY_EXISTS), 1)
@@ -318,6 +321,7 @@ else
 ifeq ($(PAKAGE_ALREADY_EXISTS), 1)
 	echo -e "\033[31mThe conan package $(CONAN_RECIPE) already exists.\033[0m"
 else
+	$(call generate_conan_env_file)
 	$(call conan_install,Debug)
 	$(call conan_build,Debug)
 endif # ($(PAKAGE_ALREADY_EXISTS), 1)

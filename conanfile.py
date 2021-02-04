@@ -12,24 +12,24 @@ is_header_only_library = len(glob.glob(os.path.join(current_directory, "src", "*
 class CppDevContainerConan(ConanFile):
     license = "Proprietary"
     generators = "cmake"
-    exports = ".conan/.env"
+    exports = "out/.env"
     exports_sources = "include/*", "src/*", "tests/*", "CMakeLists.txt", "LICENSE"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False]}
     default_options = {"shared": True}
 
     def __init__(self, *args, **kwargs):
-        config = dict(load_config_file(os.path.join(current_directory, '.conan', '.env')))
+        config = dict(load_config_file(os.path.join(current_directory, 'out', '.env')))
 
         CppDevContainerConan.name = config['PROJECT_NAME']
         CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
-        user = config.get('CONAN_USER', '')
-        channel = config.get('CONAN_CHANNEL', '')
-        require = config.get('CONAN_REQUIRE', '')
-        CppDevContainerConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
-
+        require = config.get('CONAN_REQUIRE', None)
+        if require is not None and len(require) > 0:
+            user = config.get('CONAN_USER', '')
+            channel = config.get('CONAN_CHANNEL', '')
+            CppDevContainerConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
         super().__init__(*args, **kwargs)
 
     def build(self):
