@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.4 - 2021-02-04
+### Fixed
+- Pass UNIQUE_BUILD_ID on to the container.
+
 ## 2.0.3 - 2021-02-04
 ### Fixed
 - Fix CI conanfile.py bug.
