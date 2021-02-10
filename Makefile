@@ -106,7 +106,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 2.0.4
+CURRENT_WORKFLOW_VERSION := 2.0.5
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -134,6 +134,7 @@ PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(UNIQUE_BUILD_ID)
 PROJECT_MAJOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
 PROJECT_MINOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]' | head -1).X
 PROJECT_PATCH_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1).X
+CONTAINER_NAME := $(PROJECT_NAME)-$(PROJECT_VERSION)
 
 ifeq ($(GIT_BRANCH_NAME),)
 	GIT_BRANCH_NAME := $(shell git symbolic-ref --short HEAD)
@@ -185,7 +186,7 @@ DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
 	-e UNIQUE_BUILD_ID=$(UNIQUE_BUILD_ID) \
 	-v $(PROJECT_DIR):$(CONTAINER_DIR) \
 	-w=$(CONTAINER_DIR) \
-	--name $(PROJECT_NAME) \
+	--name $(CONTAINER_NAME) \
 	$(DOCKER_IMAGE)
 
 # $(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
@@ -231,9 +232,9 @@ define generate_conan_env_file
 endef
 
 define execute_make_target_in_container
-	(docker stop $(PROJECT_NAME) &> /dev/null && docker rm $(PROJECT_NAME) &> /dev/null) \
-		&& echo "Had to stop and remove container $(PROJECT_NAME)." \
-		|| echo "Run make $(1) in container $(PROJECT_NAME)."
+	(docker stop $(CONTAINER_NAME) &> /dev/null && docker rm $(CONTAINER_NAME) &> /dev/null) \
+		&& echo "Had to stop and remove container $(CONTAINER_NAME)." \
+		|| echo "Run make $(1) in container $(CONTAINER_NAME)."
 	$(DOCKER_RUN_COMMAND) /bin/bash -c "make $(1)"
 endef
 
