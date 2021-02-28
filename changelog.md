@@ -1,6 +1,15 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 3.0.0 - 2021-02-25
+### Changed
+- Change gitlab ci interface to support feature branch deployment.
+  The branch structure needs to be:
+  * `feature-...`
+  * `develop`
+  * `testing`
+  * `master/main`
+
 ## 2.0.5 - 2021-02-10
 ### Changed
 - Use unique docker conainer names.
