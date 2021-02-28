@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 3.1.0 - 2021-02-28
+### Added
+- Add `latest` version alias.
+
 ## 3.0.0 - 2021-02-25
 ### Changed
 - Change gitlab ci interface to support feature branch deployment.
