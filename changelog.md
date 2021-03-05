@@ -1,9 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 3.1.0 - 2021-02-28
-### Added
-- Add `latest` version alias.
+## 3.0.1 - 2021-03-05
+### Fixed
+- If on a `feature-...` branch, check if the package can be downloaded
+  from channel `ci`. If not use the `develop` channel for that package.
 
 ## 3.0.0 - 2021-02-25
 ### Changed

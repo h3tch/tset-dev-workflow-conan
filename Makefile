@@ -106,7 +106,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 3.0.0
+CURRENT_WORKFLOW_VERSION := 3.0.1
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -129,11 +129,10 @@ export
 
 DEVELOPER_NAME ?= demo
 UNIQUE_BUILD_ID := $(or $(CI_PIPELINE_ID),0)
-GIT_BRANCH_NAME ?= $(CI_COMMIT_BRANCH)
+GIT_BRANCH_NAME ?= $(CI_COMMIT_REF_NAME)
 TRIGGERING_GIT_BRANCH_NAME := $(or $(PARENT_GIT_BRANCH_NAME),$(GIT_BRANCH_NAME))
 PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
 PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(UNIQUE_BUILD_ID)
-PROJECT_VERSION_ALIAS := latest
 PROJECT_MAJOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
 PROJECT_MINOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]' | head -1).X
 PROJECT_PATCH_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1).X
@@ -175,7 +174,6 @@ CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://lo
 CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
 CONAN_UPLOAD_CHANNEL := $(or $(FORCE_CONAN_UPLOAD_CHANNEL),$(FALLBACK_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
 CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL)
-CONAN_LATEST_ALIAS := $(if $(PROJECT_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
 CONAN_RECIPE_MAJOR_ALIAS := $(if $(PROJECT_MAJOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MAJOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
 CONAN_RECIPE_MINOR_ALIAS := $(if $(PROJECT_MINOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MINOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
 CONAN_RECIPE_PATCH_ALIAS := $(if $(PROJECT_PATCH_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_PATCH_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
@@ -232,13 +230,33 @@ endif # ($(IS_INSIDE_CONTAINER), 1)
 
 define generate_conan_env_file
 	mkdir -p out
+	# Store the project information in the CONAN_CONFIG_FILE
+	# which will be used when the package is installed by the user.
 	echo PROJECT_NAME=$(PROJECT_NAME) > $(CONAN_CONFIG_FILE)
 	echo PROJECT_VERSION=$(PROJECT_VERSION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_DESCRIPTION=$(PROJECT_DESCRIPTION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
-	echo CONAN_REQUIRE=$(CONAN_REQUIRE) >> $(CONAN_CONFIG_FILE)
+	# For each dependence in CONAN_REQUIRE:
+	#     Try to download the package to check if it exists.
+	#     If the download fails, set the conan channel to 'develop'.
+	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
+	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
+		USER_PACKAGE=$${PACKAGE/\{user\}/$(CONAN_USER)}; \
+		CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/$(CONAN_CHANNEL)}; \
+		conan download $${CONAN_PACKAGE} -r $(CONAN_SERVER_NAME) -re &> /dev/null; \
+		if [ "$$?" != "0" ] && [ "$(IS_ON_A_MAIN_BRANCH)" != "1" ]; then \
+			CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/develop}; \
+		fi; \
+		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
+			NEW_CONAN_REQUIRE=$${CONAN_PACKAGE}; \
+		else \
+			NEW_CONAN_REQUIRE=$${NEW_CONAN_REQUIRE},$${CONAN_PACKAGE}; \
+		fi \
+	done; \
+	echo "CONAN_REQUIRE=$${NEW_CONAN_REQUIRE}" >> $(CONAN_CONFIG_FILE)
 endef
 
 define execute_make_target_in_container
@@ -363,7 +381,6 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,upload)
 else
 	$(call conan_upload_package)
-	$(call conan_upload_alias,$(CONAN_LATEST_ALIAS))
 	$(call conan_upload_alias,$(CONAN_RECIPE_MAJOR_ALIAS))
 	$(call conan_upload_alias,$(CONAN_RECIPE_MINOR_ALIAS))
 	$(call conan_upload_alias,$(CONAN_RECIPE_PATCH_ALIAS))
