@@ -1,6 +1,55 @@
 ## This makefile adheres to the tset C++ developer workflow.
 ##
-## It expects a "config" and an optional "Dockerfile" file in the same directory as this Makefile.
+## ## Quick Start Guide
+## 
+## In case you clone an existing repo using the tset C++ workflow, this quickstart will help you set
+## up your repo.
+##
+## ### Add a "secret" file in the root folder.
+##
+## Your "secret" file needs to contain a `CONAN_USER_PASSWORD` variable and nothing more. This is
+## the password used to login into your conan repository. This should be already setup if you clone
+## an existing repository. Usually this password is stored in the teams password manager. Search
+## for "conan" in your password manager or ask your dev-ops team or admit for the password.
+## ```sh
+## CONAN_USER_PASSWORD=1234567890abcdefghijklmnopqrstuvwxyz
+## ```
+##
+## ### Setup your `DEVELOPER_NAME`
+##
+## **LINUX:** In your ".bashrc" (or .zshrc or similar file depending on your linux shell) set the
+## `DEVELOPER_NAME` variable to you developer name or initials.
+## ```sh
+## export DEVELOPER_NAME=mhe
+## ```
+##
+## **WINDOWS:** Add `DEVELOPER_NAME` to your user variables. Set it to your developer name or
+## initials.
+##
+## ### Working with the tset C++ workflow
+##
+## You can execute the following commands inside a shell in the root folder of the project:
+## * `make`: Print a help for all the targets available.
+## * `make release`: Release and `make debug` will start a development container and will compile
+##                   the source code inside the docker container.
+## * `make test`: Each project usually contains unit tests or test scripts to test the functionality
+##                of the compiled package or program.
+## * `make package`: Prepare a conan package in the "out" folder of the project.
+## * `make upload`: Upload the conan package in from the "out" folder to the conan server.
+## * `make shell`: You can also start a shell inside the container and execute all above commands
+##                 within. This can be helpful to save compile time.
+##
+## ### Program execution inside the container
+##
+## Start a terminal inside the dev container using `make shell`. The binaries are located in
+## "out/build/bin". Some projects also provide "start.sh" files in the "tests" folder, which can
+## be executed to start a test service or other program for local testing. Have a look inside the
+## "start.sh" file to get information about how to use these scripts.
+##
+## ## Introduction
+##
+## The tset C++ developer workflow expects a "config" and an optional "secret" and "Dockerfile"
+## file in the same directory as this Makefile.
 ##
 ## ### The config file explained
 ##
@@ -73,7 +122,8 @@
 ##  - Makefile           # Predefined by the dev workflow.
 ## ```
 ##
-## Depending on which folders and files are present, an executable, shared library or header only library will be created.
+## Depending on which folders and files are present, an executable, shared library or header only
+## library will be created.
 ##
 ## If precompiled headers `pch.h` or `test-pch.h` are present they will be automatically 
 ## included in all source and test files respectively.
@@ -84,15 +134,18 @@
 ##
 ## **Shared Library**
 ##
-## If there are `*.cpp` files in the `src` folder, but no `main.cpp`, a shared library will be created.
+## If there are `*.cpp` files in the `src` folder, but no `main.cpp`, a shared library will be
+## created.
 ##
 ## **Header Only Library**
 ##
-## A header only library will be assumed if neither the conditions for an executable nor a shared library are met.
+## A header only library will be assumed if neither the conditions for an executable nor a shared
+## library are met.
 ##
 ## ### The Makefile Explained
 ##
-## Please execute `make` in the root folder of the project to see the documentation of the make targets.
+## Please execute `make` in the root folder of the project to see the documentation of the make
+## targets.
 ## 
 ## **Overwrite Environment Variables**
 ## The following variables can be overwritten by adding a `FORCE_` in front. E.g.
@@ -106,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 3.0.1
+CURRENT_WORKFLOW_VERSION := 3.0.2
 WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
@@ -305,11 +358,11 @@ endef
 # TARGETS
 
 .DEFAULT_GOAL := help
-.PHONY:  help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode
-.SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode
+.PHONY:  help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode generate-readme
+.SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode generate-readme
 
 help: ## | Show this help.
-	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 rebuild: ## | Rebuild the docker container image (no cache).
 ifneq ($(IS_INSIDE_CONTAINER), 1)
@@ -376,7 +429,7 @@ else
 	$(call conan_create_package)
 endif
 
-upload: ## | Upload the packages to the package server (` CONAN_USER_PASSWORD=<password: default CONAN_USER> make upload`). -- Requires: release/debug, package
+upload: ## | Upload the packages to the package server (needs a secret file with a `CONAN_USER_PASSWORD` or ` CONAN_USER_PASSWORD=<password: default CONAN_USER> make upload`). -- Requires: release/debug, package
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,upload)
 else
@@ -386,7 +439,7 @@ else
 	$(call conan_upload_alias,$(CONAN_RECIPE_PATCH_ALIAS))
 endif
 
-shell: ## | Start a terminal inside the container.
+shell: ## | Start a terminal inside the container. This way you can save time when recompiling the source code.
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(DOCKER_RUN_COMMAND) /bin/bash
 else
@@ -413,9 +466,12 @@ else ifneq ($(WORKFLOW_VERSION), $(CURRENT_WORKFLOW_VERSION))
 	rm -rf /tmp/dev-workflow
 endif
 
-vscode: ## | Start Visual Studio Code with all environment variables of the config file set.
+vscode: ## | Start Visual Studio Code with all environment variables of the config file set. This will allow you to use the devcontainer extension if the .devcontainer folder is set up correctly.
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(shell cat $(PROJECT_DIR)/config) DOCKERFILE_PATH=$(DOCKERFILE_PATH) code .
 else
 	echo "Must be executed outside the container."
 endif
+
+generate-readme: ## | Compile a readme.md file from this Makefile. All lines starting with "##" will be included.
+	cat Makefile | grep '^##' | cut -c 4- > readme.md

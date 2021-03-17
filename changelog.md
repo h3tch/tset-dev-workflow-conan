@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 3.0.2 - 2021-03-17
+### Added
+- Added additional quick start guid and readme.
+
 ## 3.0.1 - 2021-03-05
 ### Fixed
 - If on a `feature-...` branch, check if the package can be downloaded
