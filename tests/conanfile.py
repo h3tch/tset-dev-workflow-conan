@@ -13,11 +13,25 @@ class CppDevContainerTestConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join('out', '.env')))
-        require = config.get('CONAN_REQUIRE', '')
-        if require is not None and len(require) > 0:
+
+        def convert_to_conan_recipe(requirements):
+            if requirements is None or len(requirements) == 0:
+                return requirements
             user = config.get('CONAN_USER', '')
             channel = config.get('CONAN_CHANNEL', '')
-            CppDevContainerTestConan.requires = require.replace('{user}', user).replace('{channel}', channel).split(',')
+            return requirements.replace('{user}', user).replace('{channel}', channel).split(',')
+
+        def override_requirements(old_recipes, new_recipes):
+            for new in new_recipes:
+                name = new[:new.index('/')]
+                for i, old in enumerate(old_recipes):
+                    if old[:old.index('/')] == name:
+                        old_recipes[i] = new
+            return old_recipes
+            
+        requires = convert_to_conan_recipe(config.get('CONAN_REQUIRE', None))
+        override = convert_to_conan_recipe(config.get('OVERRIDE_CONAN_REQUIRE', None))
+        CppDevContainerConan.requires = override_requirements(requires, override)
         super().__init__(*args, **kwargs)
 
     def build(self):

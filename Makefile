@@ -159,129 +159,158 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 3.0.2
-WORKFLOW_VERSION ?= $(CURRENT_WORKFLOW_VERSION)
+CURRENT_WORKFLOW_VERSION := 4.0.0
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
-export PROJECT_DIR := $(abspath .)
-BUILD_OUT_DIR := $(PROJECT_DIR)/out/build
-SOURCE_OUT_DIR := $(PROJECT_DIR)/out/source
-TESTS_OUT_DIR := $(PROJECT_DIR)/out/tests
-PACKAGE_OUT_DIR := $(PROJECT_DIR)/out/package
-CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
-DOCKERFILE_PATH := $(or $(wildcard $(PROJECT_DIR)/Dockerfile), $(wildcard $(PROJECT_DIR)/.devcontainer/Dockerfile))
-ifeq (,$(wildcard config))
-$(info WARNING No 'config' file found.)
-endif
+# VARIABLES
+
 -include config
-export
--include secret
+export COMPILE_OPTIONS
+export PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
+export PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(or $(CI_PIPELINE_ID),0)
+export PROJECT_DIR := $(abspath .)
+DEVELOPER_ID ?= 0
 
+ifeq ($(IS_INSIDE_CONTAINER), 1)
 
-# COMPILE VARIABLES
+    -include secret
 
-DEVELOPER_NAME ?= demo
-UNIQUE_BUILD_ID := $(or $(CI_PIPELINE_ID),0)
-GIT_BRANCH_NAME ?= $(CI_COMMIT_REF_NAME)
-TRIGGERING_GIT_BRANCH_NAME := $(or $(PARENT_GIT_BRANCH_NAME),$(GIT_BRANCH_NAME))
-PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
-PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(UNIQUE_BUILD_ID)
-PROJECT_MAJOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+' | head -1).X
-PROJECT_MINOR_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]' | head -1).X
-PROJECT_PATCH_VERSION_ALIAS := $(shell echo $(PROJECT_VERSION) | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1).X
-CONTAINER_NAME := $(PROJECT_NAME)-$(PROJECT_VERSION)
+    BUILD_OUT_DIR := $(PROJECT_DIR)/out/build
+    SOURCE_OUT_DIR := $(PROJECT_DIR)/out/source
+    TESTS_OUT_DIR := $(PROJECT_DIR)/out/tests
+    PACKAGE_OUT_DIR := $(PROJECT_DIR)/out/package
+    CI_CONFIG_FILE := out/ci.env
+    CONAN_CONFIG_FILE := out/.env
+    CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
+    CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),stable)
+    CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
+    CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
+    CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
 
-ifeq ($(GIT_BRANCH_NAME),)
-	GIT_BRANCH_NAME := $(shell git symbolic-ref --short HEAD)
-endif
+    # Setup custom remote repo.
+    CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
+    ifneq ($(CONAN_REMOTE_EXISTS), 1)
+        $(info Add Conan remote: $(CONAN_SERVER_NAME) -> $(CONAN_SERVER_URL))
+        $(shell conan remote add $(CONAN_SERVER_NAME) $(CONAN_SERVER_URL))
+    endif
 
-ifeq ($(TRIGGERING_GIT_BRANCH_NAME), master)
-	IS_ON_A_MAIN_BRANCH := 1
-	DEFAULT_CONAN_CHANNEL := stable
-else ifeq ($(TRIGGERING_GIT_BRANCH_NAME), main)
-	IS_ON_A_MAIN_BRANCH := 1
-	DEFAULT_CONAN_CHANNEL := stable
-else ifeq ($(TRIGGERING_GIT_BRANCH_NAME), testing)
-	IS_ON_A_MAIN_BRANCH := 1
-	DEFAULT_CONAN_CHANNEL := testing
-else ifeq ($(TRIGGERING_GIT_BRANCH_NAME), develop)
-	IS_ON_A_MAIN_BRANCH := 1
-	DEFAULT_CONAN_CHANNEL := develop
+    # Set conan user and password
+    CONAN_USER_EXISTS := $(shell (conan user 2>/dev/null | grep tset-conan | grep None) && echo 1)
+    ifneq ($(CONAN_USER_EXISTS), 1)
+        $(info Set Conan user for $(CONAN_SERVER_NAME): $(CONAN_USER) $(if $(CONAN_USER_PASSWORD),(has password)))
+        $(shell conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) &> /dev/null)
+    endif
+
+    # Setup local repo.
+    ifneq ($(CONAN_KEEP_PACKAGE),)
+        $(shell cp -r $(HOME)/.conan $(PROJECT_DIR))
+        export CONAN_USER_HOME := $(PROJECT_DIR)
+        $(info Set CONAN_USER_HOME: $(PROJECT_DIR))
+    endif
+
+    # CUR_BRANCH_NAME
+    CUR_BRANCH_NAME := $(or $(CI_COMMIT_REF_NAME),$(shell git symbolic-ref --short HEAD))
+    
+    # Check if in release mode
+    ifeq ($(CI_PIPELINE_SOURCE),push)
+    ifeq ($(CUR_BRANCH_NAME),master)
+        RELEASE_MODE := 1
+        $(info Is in release mode.)
+    endif
+    endif
+
+    # PROJECT_VERSION_LATEST
+    PROJECT_VERSION_LATEST := $(or $(shell \
+        conan inspect $(PROJECT_NAME)/1.X@$(CONAN_USER)/stable -a alias -r tset-conan | \
+        grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+    
+    # PROJECT_VERSION
+    ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major-*),)
+        inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $(word 3,$(subst ., ,$1)))
+    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature-*),)
+        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).$(shell echo $(word 3,$(subst ., ,$1)))
+    else
+        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1))+1)))
+    endif
+    PROJECT_VERSION := $(call inc,$(PROJECT_VERSION_LATEST))
+    PROJECT_VERSION_ALIAS := latest
+
+	# Set conan chanel base on the release mode
+    CONAN_CHANNEL := develop
+    ifeq ($(RELEASE_MODE),1)
+        CONAN_CHANNEL := stable
+    endif
+
+	# Extend project versions if NOT in release mode
+    ifneq ($(RELEASE_MODE),1)
+        PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
+        PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
+    endif
+
+    # CONAN_RECIPE
+    CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
+    CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
+
+    # Is NOT in develop mode
+    ifeq ($(RELEASE_MODE),1)
+        PAKAGE_ALREADY_EXISTS := $(shell \
+            conan download $(CONAN_RECIPE) -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1)
+        ifeq ($(PAKAGE_ALREADY_EXISTS),1)
+            $(info ERROR: Package $(CONAN_RECIPE) already exists in conan channel $(CONAN_CHANNEL).)
+			exit
+        else
+            $(info CHECK OK: Package not yet in conan channel $(CONAN_CHANNEL).)
+        endif
+    endif
+
+    OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ',' ' ')
+    OVERRIDE_CONAN_REQUIRE += $(CONAN_RECIPE)
+    OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ' ' ',')
+
+    $(info Branch: $(CUR_BRANCH_NAME))
+    $(info Cur project version: $(PROJECT_VERSION_LATEST))
+    $(info New project version: $(PROJECT_VERSION))
+    $(info Conan channel: $(CONAN_CHANNEL))
+    $(info Conan recipe: $(CONAN_RECIPE))
+    $(info New requirements: $(OVERRIDE_CONAN_REQUIRE))
+
 else
-	DEFAULT_CONAN_CHANNEL := ci
-endif
+    # Is outside the container.
 
-ifeq ($(CI_PIPELINE_ID),)
-FALLBACK_CONAN_UPLOAD_CHANNEL := $(DEVELOPER_NAME)
-ifeq ($(DEVELOPER_NAME),demo)
-$(info WARNING Using fallback conan upload channel 'demo'. Please export variable DEVELOPER_NAME to use a personal developer channel.)
-endif
-endif
+    ifeq (,$(wildcard config))
+        $(info WARNING No 'config' file found.)
+    endif
 
+    CONTAINER_NAME := $(PROJECT_NAME)-$(PROJECT_VERSION)
+    CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
+    PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
+    DOCKER_BUILD_NO_CACHE ?= --no-cache
+    DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
+        --network host \
+        -e IS_INSIDE_CONTAINER=1 \
+        -e DEVELOPER_ID=$(DEVELOPER_ID) \
+        -e RELEASE_MODE=$(RELEASE_MODE) \
+        -e CI_COMMIT_REF_NAME=$(CI_COMMIT_REF_NAME) \
+        -e CI_PIPELINE_SOURCE=$(CI_PIPELINE_SOURCE) \
+        -e FORCE_CONAN_USER=$(FORCE_CONAN_USER) \
+        -e FORCE_CONAN_CHANNEL=$(FORCE_CONAN_CHANNEL) \
+        -e FORCE_CONAN_SERVER_NAME=$(FORCE_CONAN_SERVER_NAME) \
+        -e FORCE_CONAN_SERVER_URL=$(FORCE_CONAN_SERVER_URL) \
+        -e FORCE_CONAN_USER_PASSWORD=$(FORCE_CONAN_USER_PASSWORD) \
+		-e CONAN_KEEP_PACKAGE=$(CONAN_KEEP_PACKAGE) \
+        -v $(PROJECT_DIR):$(CONTAINER_DIR) \
+        -w=$(CONTAINER_DIR) \
+        --name $(CONTAINER_NAME) \
+        $(DOCKER_IMAGE)
 
-CONAN_CONFIG_FILE := out/.env
-CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
-CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
-CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
-CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
-CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
-CONAN_UPLOAD_CHANNEL := $(or $(FORCE_CONAN_UPLOAD_CHANNEL),$(FALLBACK_CONAN_UPLOAD_CHANNEL),$(DEFAULT_CONAN_CHANNEL))
-CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL)
-CONAN_RECIPE_MAJOR_ALIAS := $(if $(PROJECT_MAJOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MAJOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
-CONAN_RECIPE_MINOR_ALIAS := $(if $(PROJECT_MINOR_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_MINOR_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
-CONAN_RECIPE_PATCH_ALIAS := $(if $(PROJECT_PATCH_VERSION_ALIAS),$(PROJECT_NAME)/$(PROJECT_PATCH_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL),)
-PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
-DOCKER_BUILD_NO_CACHE ?= --no-cache
-DOCKER_RUN_COMMAND := docker run --rm -i $(PSEUDO_TTY) \
-	--network host \
-	--env-file $(PROJECT_DIR)/config \
-	-e CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
-	-e CI_COMMIT_BRANCH=$(CI_COMMIT_BRANCH) \
-	-e PARENT_GIT_BRANCH_NAME=$(PARENT_GIT_BRANCH_NAME) \
-	-e GIT_BRANCH_NAME=$(GIT_BRANCH_NAME) \
-	-e DEVELOPER_NAME=$(DEVELOPER_NAME) \
-	-e IS_INSIDE_CONTAINER=1 \
-	-e CONAN_USER=$(CONAN_USER) \
-	-e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
-	-e CONAN_CHANNEL=$(CONAN_CHANNEL) \
-	-e CONAN_KEEP_PACKAGE=$(CONAN_KEEP_PACKAGE) \
-	-v $(PROJECT_DIR):$(CONTAINER_DIR) \
-	-w=$(CONTAINER_DIR) \
-	--name $(CONTAINER_NAME) \
-	$(DOCKER_IMAGE)
+endif
 
 # $(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
 
-# SETUP CONAN REPO
-
-ifeq ($(IS_INSIDE_CONTAINER), 1)
-
-# Setup custom remote repo.
-CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
-ifneq ($(CONAN_REMOTE_EXISTS), 1)
-$(shell conan remote add $(CONAN_SERVER_NAME) $(CONAN_SERVER_URL))
-endif # ($(CONAN_REMOTE_EXISTS), 1)
-
-# Setup local repo.
-ifneq ($(CONAN_KEEP_PACKAGE),)
-$(shell cp -r $(HOME)/.conan $(CONTAINER_DIR))
-export CONAN_USER_HOME := $(CONTAINER_DIR)
-endif # ($(CONAN_KEEP_PACKAGE),)
-
-# Make sure we do not overwrite a package in a main-branch.
-ifeq ($(IS_ON_A_MAIN_BRANCH), 1)
-PAKAGE_ALREADY_EXISTS := $(shell \
-	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) &> /dev/null \
-	&& conan download $(CONAN_RECIPE) -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1)
-endif # ($(IS_ON_A_MAIN_BRANCH), 1)
-
-endif # ($(IS_INSIDE_CONTAINER), 1)
-
-
 # MACROS
 
-define generate_conan_env_file
+define generate_env_files
 	mkdir -p out
 	# Store the project information in the CONAN_CONFIG_FILE
 	# which will be used when the package is installed by the user.
@@ -291,18 +320,11 @@ define generate_conan_env_file
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
-	# For each dependence in CONAN_REQUIRE:
-	#     Try to download the package to check if it exists.
-	#     If the download fails, set the conan channel to 'develop'.
 	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
 	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
 		USER_PACKAGE=$${PACKAGE/\{user\}/$(CONAN_USER)}; \
 		CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/$(CONAN_CHANNEL)}; \
-		conan download $${CONAN_PACKAGE} -r $(CONAN_SERVER_NAME) -re &> /dev/null; \
-		if [ "$$?" != "0" ] && [ "$(IS_ON_A_MAIN_BRANCH)" != "1" ]; then \
-			CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/develop}; \
-		fi; \
 		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
 			NEW_CONAN_REQUIRE=$${CONAN_PACKAGE}; \
 		else \
@@ -310,6 +332,11 @@ define generate_conan_env_file
 		fi \
 	done; \
 	echo "CONAN_REQUIRE=$${NEW_CONAN_REQUIRE}" >> $(CONAN_CONFIG_FILE)
+	echo "OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE)" >> $(CONAN_CONFIG_FILE)
+
+    # CI_CONFIG_FILE
+	echo "OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE)" > $(CI_CONFIG_FILE)
+	echo "RELEASE_MODE=$(RELEASE_MODE)" >> $(CI_CONFIG_FILE)
 endef
 
 define execute_make_target_in_container
@@ -320,28 +347,20 @@ define execute_make_target_in_container
 endef
 
 define conan_install
-	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan install . \
-		--update -s build_type=$(1) \
-		--install-folder=$(BUILD_OUT_DIR)
+	conan install . --update -s build_type=$(1) --install-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_build
-	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& mkdir -p $(BUILD_OUT_DIR) && echo $(1) > $(BUILD_OUT_DIR)/build_type \
+	mkdir -p $(BUILD_OUT_DIR) && echo $(1) > $(BUILD_OUT_DIR)/build_type \
 	&& INSTALLED_CONAN_PACKAGES=$$(conan search | grep "/" | tr '\n' ';') conan build . --build-folder=$(BUILD_OUT_DIR)
 endef
 
 define conan_create_package
-	conan package . \
-		--build-folder=$(BUILD_OUT_DIR) \
-		--package-folder=$(PACKAGE_OUT_DIR)
+	conan package . --build-folder=$(BUILD_OUT_DIR) --package-folder=$(PACKAGE_OUT_DIR)
 endef
 
 define conan_upload_package
-	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan export-pkg . $(CONAN_USER)/$(CONAN_UPLOAD_CHANNEL) \
-	    --force --package-folder=$(PACKAGE_OUT_DIR) \
+	conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
@@ -362,7 +381,7 @@ endef
 .SILENT: help build rebuild release debug test package test-package upload shell tidy upgrade-workflow vscode generate-readme
 
 help: ## | Show this help.
-	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 rebuild: ## | Rebuild the docker container image (no cache).
 ifneq ($(IS_INSIDE_CONTAINER), 1)
@@ -387,28 +406,20 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,release)
 else
 	-rm -rf $(PROJECT_DIR)/out
-ifeq ($(PAKAGE_ALREADY_EXISTS), 1)
-	echo -e "\033[31mThe conan package $(CONAN_RECIPE) already exists.\033[0m"
-else
 	$(call generate_conan_env_file)
 	$(call conan_install,Release)
 	$(call conan_build,Release)
-endif # ($(PAKAGE_ALREADY_EXISTS), 1)
-endif # ($(IS_INSIDE_CONTAINER), 1)
+endif
 
 debug: ## | Compile and link the source code inside the container into binaries with debug symbols.
 ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,debug)
 else
 	-rm -rf $(PROJECT_DIR)/out
-ifeq ($(PAKAGE_ALREADY_EXISTS), 1)
-	echo -e "\033[31mThe conan package $(CONAN_RECIPE) already exists.\033[0m"
-else
 	$(call generate_conan_env_file)
 	$(call conan_install,Debug)
 	$(call conan_build,Debug)
-endif # ($(PAKAGE_ALREADY_EXISTS), 1)
-endif # ($(IS_INSIDE_CONTAINER), 1)
+endif
 
 test: ## | Run the unit tests inside the container. -- Requires: release/debug
 ifneq ($(IS_INSIDE_CONTAINER), 1)
@@ -434,9 +445,7 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,upload)
 else
 	$(call conan_upload_package)
-	$(call conan_upload_alias,$(CONAN_RECIPE_MAJOR_ALIAS))
-	$(call conan_upload_alias,$(CONAN_RECIPE_MINOR_ALIAS))
-	$(call conan_upload_alias,$(CONAN_RECIPE_PATCH_ALIAS))
+	$(call conan_upload_alias,$(CONAN_RECIPE_ALIAS))
 endif
 
 shell: ## | Start a terminal inside the container. This way you can save time when recompiling the source code.
@@ -468,7 +477,7 @@ endif
 
 vscode: ## | Start Visual Studio Code with all environment variables of the config file set. This will allow you to use the devcontainer extension if the .devcontainer folder is set up correctly.
 ifneq ($(IS_INSIDE_CONTAINER), 1)
-	$(shell cat $(PROJECT_DIR)/config) DOCKERFILE_PATH=$(DOCKERFILE_PATH) code .
+	$(shell cat $(PROJECT_DIR)/config) DOCKERFILE_PATH=$(or $(wildcard $(PROJECT_DIR)/Dockerfile), $(wildcard $(PROJECT_DIR)/.devcontainer/Dockerfile)) code .
 else
 	echo "Must be executed outside the container."
 endif

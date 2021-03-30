@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.0 - 2021-03-30
+### Changed
+- Remove feature branch support.
+
 ## 3.0.2 - 2021-03-17
 ### Added
 - Added additional quick start guid and readme.
