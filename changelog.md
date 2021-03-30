@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.4 - 2021-03-30
+### Fixed
+- Subsequent projects did not use the latest package versions of requirements.
+
 ## 4.0.3 - 2021-03-30
 ### Fixed
 - Append developer ID when not pushing onto the master branch.

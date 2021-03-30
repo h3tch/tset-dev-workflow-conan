@@ -255,6 +255,9 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     # CONAN_RECIPE
     CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
     CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
+    ifeq ($(RELEASE_MODE),1)
+        CONAN_RECIPE_CI_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS).$(DEVELOPER_ID)@$(CONAN_USER)/$(CONAN_CHANNEL)
+    endif
     $(info Conan recipe: $(CONAN_RECIPE))
 
     # Is NOT in develop mode
@@ -268,12 +271,6 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
             $(info CHECK OK: Package not yet in conan channel $(CONAN_CHANNEL).)
         endif
     endif
-
-    $(info Old override requirements: $(OVERRIDE_CONAN_REQUIRE))
-    OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ',' ' ')
-    OVERRIDE_CONAN_REQUIRE += $(CONAN_RECIPE)
-    OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ' ' ',')
-    $(info New override requirements: $(OVERRIDE_CONAN_REQUIRE))
 
 endif
 else
@@ -291,7 +288,6 @@ else
         -e IS_INSIDE_CONTAINER=1 \
         -e DEVELOPER_ID=$(DEVELOPER_ID) \
         -e RELEASE_MODE=$(RELEASE_MODE) \
-        -e OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE) \
         -e PARENT_GIT_BRANCH_NAME=$(PARENT_GIT_BRANCH_NAME) \
         -e CI_COMMIT_REF_NAME=$(CI_COMMIT_REF_NAME) \
         -e CI_PIPELINE_SOURCE=$(CI_PIPELINE_SOURCE) \
@@ -325,6 +321,7 @@ define generate_env_files
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
+	echo CONAN_LATEST=$(PROJECT_VERSION_ALIAS) >> $(CONAN_CONFIG_FILE)
 	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
 	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
@@ -337,10 +334,8 @@ define generate_env_files
 		fi \
 	done; \
 	echo "CONAN_REQUIRE=$${NEW_CONAN_REQUIRE}" >> $(CONAN_CONFIG_FILE)
-	echo "OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE)" >> $(CONAN_CONFIG_FILE)
 
     # CI_CONFIG_FILE
-	echo "OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE)" > $(CI_CONFIG_FILE)
 	echo "RELEASE_MODE=$(RELEASE_MODE)" >> $(CI_CONFIG_FILE)
 endef
 
@@ -452,6 +447,9 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 else
 	$(call conan_upload_package)
 	$(call conan_upload_alias,$(CONAN_RECIPE_ALIAS))
+ifeq ($(RELEASE_MODE),1)
+	$(call conan_upload_alias,$(CONAN_RECIPE_CI_ALIAS))
+endif
 endif
 
 shell: ## | Start a terminal inside the container. This way you can save time when recompiling the source code.
