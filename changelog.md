@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.1 - 2021-03-30
+### Fixed
+- Several bug fixes to make the new workflow work with Gitlab.
+
 ## 4.0.0 - 2021-03-30
 ### Changed
 - Remove feature branch support.

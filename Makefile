@@ -210,6 +210,7 @@ ifeq ($(IS_INSIDE_CONTAINER), 1)
 
     # CUR_BRANCH_NAME
     CUR_BRANCH_NAME := $(or $(CI_COMMIT_REF_NAME),$(shell git symbolic-ref --short HEAD))
+    $(info Branch: $(CUR_BRANCH_NAME))
     
     # Check if in release mode
     ifeq ($(CI_PIPELINE_SOURCE),push)
@@ -221,8 +222,9 @@ ifeq ($(IS_INSIDE_CONTAINER), 1)
 
     # PROJECT_VERSION_LATEST
     PROJECT_VERSION_LATEST := $(or $(shell \
-        conan inspect $(PROJECT_NAME)/1.X@$(CONAN_USER)/stable -a alias -r tset-conan | \
+        conan inspect $(PROJECT_NAME)/latest@$(CONAN_USER)/stable -a alias -r tset-conan | \
         grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+    $(info Cur project version: $(PROJECT_VERSION_LATEST))
     
     # PROJECT_VERSION
     ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major-*),)
@@ -240,16 +242,21 @@ ifeq ($(IS_INSIDE_CONTAINER), 1)
     ifeq ($(RELEASE_MODE),1)
         CONAN_CHANNEL := stable
     endif
+    $(info Conan channel: $(CONAN_CHANNEL))
 
-	# Extend project versions if NOT in release mode
+	# Extend project versions if NOT in release mode and NOT the CI developer id
     ifneq ($(RELEASE_MODE),1)
+    ifneq ($(DEVELOPER_ID),0)
         PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
         PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
     endif
+    endif
+    $(info New project version: $(PROJECT_VERSION))
 
     # CONAN_RECIPE
     CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
     CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
+    $(info Conan recipe: $(CONAN_RECIPE))
 
     # Is NOT in develop mode
     ifeq ($(RELEASE_MODE),1)
@@ -263,16 +270,11 @@ ifeq ($(IS_INSIDE_CONTAINER), 1)
         endif
     endif
 
+    $(info Old override requirements: $(OVERRIDE_CONAN_REQUIRE))
     OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ',' ' ')
     OVERRIDE_CONAN_REQUIRE += $(CONAN_RECIPE)
     OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ' ' ',')
-
-    $(info Branch: $(CUR_BRANCH_NAME))
-    $(info Cur project version: $(PROJECT_VERSION_LATEST))
-    $(info New project version: $(PROJECT_VERSION))
-    $(info Conan channel: $(CONAN_CHANNEL))
-    $(info Conan recipe: $(CONAN_RECIPE))
-    $(info New requirements: $(OVERRIDE_CONAN_REQUIRE))
+    $(info New override requirements: $(OVERRIDE_CONAN_REQUIRE))
 
 else
     # Is outside the container.
@@ -290,8 +292,12 @@ else
         -e IS_INSIDE_CONTAINER=1 \
         -e DEVELOPER_ID=$(DEVELOPER_ID) \
         -e RELEASE_MODE=$(RELEASE_MODE) \
+        -e OVERRIDE_CONAN_REQUIRE=$(OVERRIDE_CONAN_REQUIRE) \
+        -e PARENT_GIT_BRANCH_NAME=$(PARENT_GIT_BRANCH_NAME) \
         -e CI_COMMIT_REF_NAME=$(CI_COMMIT_REF_NAME) \
         -e CI_PIPELINE_SOURCE=$(CI_PIPELINE_SOURCE) \
+        -e CONAN_USER=$(CONAN_USER) \
+        -e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
         -e FORCE_CONAN_USER=$(FORCE_CONAN_USER) \
         -e FORCE_CONAN_CHANNEL=$(FORCE_CONAN_CHANNEL) \
         -e FORCE_CONAN_SERVER_NAME=$(FORCE_CONAN_SERVER_NAME) \
@@ -360,7 +366,8 @@ define conan_create_package
 endef
 
 define conan_upload_package
-	conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) --force --package-folder=$(PACKAGE_OUT_DIR) \
+	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
@@ -406,7 +413,7 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,release)
 else
 	-rm -rf $(PROJECT_DIR)/out
-	$(call generate_conan_env_file)
+	$(call generate_env_files)
 	$(call conan_install,Release)
 	$(call conan_build,Release)
 endif
@@ -416,7 +423,7 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,debug)
 else
 	-rm -rf $(PROJECT_DIR)/out
-	$(call generate_conan_env_file)
+	$(call generate_env_files)
 	$(call conan_install,Debug)
 	$(call conan_build,Debug)
 endif
