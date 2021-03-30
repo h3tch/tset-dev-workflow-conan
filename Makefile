@@ -247,10 +247,8 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
 
 	# Extend project versions if NOT in release mode and NOT the CI developer id
     ifneq ($(RELEASE_MODE),1)
-    ifneq ($(DEVELOPER_ID),0)
         PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
         PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
-    endif
     endif
     $(info New project version: $(PROJECT_VERSION))
 
