@@ -159,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.0
+CURRENT_WORKFLOW_VERSION := 4.0.2
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -172,6 +172,7 @@ export PROJECT_DIR := $(abspath .)
 DEVELOPER_ID ?= 0
 
 ifeq ($(IS_INSIDE_CONTAINER), 1)
+ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
 
     -include secret
 
@@ -276,9 +277,9 @@ ifeq ($(IS_INSIDE_CONTAINER), 1)
     OVERRIDE_CONAN_REQUIRE := $(shell echo "$(strip $(OVERRIDE_CONAN_REQUIRE))" | tr ' ' ',')
     $(info New override requirements: $(OVERRIDE_CONAN_REQUIRE))
 
+endif
 else
     # Is outside the container.
-
     ifeq (,$(wildcard config))
         $(info WARNING No 'config' file found.)
     endif
@@ -303,7 +304,7 @@ else
         -e FORCE_CONAN_SERVER_NAME=$(FORCE_CONAN_SERVER_NAME) \
         -e FORCE_CONAN_SERVER_URL=$(FORCE_CONAN_SERVER_URL) \
         -e FORCE_CONAN_USER_PASSWORD=$(FORCE_CONAN_USER_PASSWORD) \
-		-e CONAN_KEEP_PACKAGE=$(CONAN_KEEP_PACKAGE) \
+        -e CONAN_KEEP_PACKAGE=$(CONAN_KEEP_PACKAGE) \
         -v $(PROJECT_DIR):$(CONTAINER_DIR) \
         -w=$(CONTAINER_DIR) \
         --name $(CONTAINER_NAME) \
