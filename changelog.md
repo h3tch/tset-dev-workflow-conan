@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.6 - 2021-03-31
+### Fixed
+- Fixed version bump bug for major and feature branches.
+
 ## 4.0.5 - 2021-03-31
 ### Fixed
 - Feature and major branches do not need to have a `-` (`major-...` --> `major...`).

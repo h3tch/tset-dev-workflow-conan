@@ -229,9 +229,9 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     
     # PROJECT_VERSION
     ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major*),)
-        inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $(word 3,$(subst ., ,$1)))
+        inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).0.0
     else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature*),)
-        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).$(shell echo $(word 3,$(subst ., ,$1)))
+        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).0
     else
         inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1))+1)))
     endif
