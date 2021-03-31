@@ -1,6 +1,11 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.5 - 2021-03-31
+### Fixed
+- Feature and major branches do not need to have a `-` (`major-...` --> `major...`).
+  This allows the use of `feature/`, `feature-` or any other separator (or none).
+
 ## 4.0.4 - 2021-03-30
 ### Fixed
 - Subsequent projects did not use the latest package versions of requirements.

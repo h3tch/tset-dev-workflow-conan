@@ -159,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.2
+CURRENT_WORKFLOW_VERSION := 4.0.5
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -228,9 +228,9 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     $(info Cur project version: $(PROJECT_VERSION_LATEST))
     
     # PROJECT_VERSION
-    ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major-*),)
+    ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major*),)
         inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $(word 3,$(subst ., ,$1)))
-    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature-*),)
+    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature*),)
         inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).$(shell echo $(word 3,$(subst ., ,$1)))
     else
         inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1))+1)))
