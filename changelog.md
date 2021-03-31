@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.7 - 2021-03-31
+### Fixed
+- Fix package installation bug for local development.
+
 ## 4.0.6 - 2021-03-31
 ### Fixed
 - Fixed version bump bug for major and feature branches.

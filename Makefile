@@ -159,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.6
+CURRENT_WORKFLOW_VERSION := 4.0.7
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -252,6 +252,13 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     endif
     $(info New project version: $(PROJECT_VERSION))
 
+	# Set conan chanel latest version to latest for developers and latest.0 for the CI
+    CONAN_LATEST := latest
+    ifeq ($(DEVELOPER_ID),0)
+        CONAN_LATEST := $(PROJECT_VERSION_ALIAS)
+    endif
+    $(info Conan latest: $(CONAN_LATEST))
+
     # CONAN_RECIPE
     CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
     CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
@@ -321,7 +328,7 @@ define generate_env_files
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
 	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
-	echo CONAN_LATEST=$(PROJECT_VERSION_ALIAS) >> $(CONAN_CONFIG_FILE)
+	echo CONAN_LATEST=$(CONAN_LATEST) >> $(CONAN_CONFIG_FILE)
 	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
 	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
