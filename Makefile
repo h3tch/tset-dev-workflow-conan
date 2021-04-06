@@ -159,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.8
+CURRENT_WORKFLOW_VERSION := 4.0.9
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -187,6 +187,17 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
     CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
     CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
+    find_next_free_version = $(shell found=1; \
+        major=$(word 1,$(subst ., ,$1)); \
+        minor=$(word 2,$(subst ., ,$1)); \
+        patch=$(word 3,$(subst ., ,$1)); \
+        while [[ $$found -ge 1 ]]; do \
+            found=$$(conan download $(PROJECT_NAME)/$${major}.$${minor}.$${patch}@$(CONAN_USER)/stable -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1 || echo 0); \
+            if [[ $$found -ge 1 ]]; then \
+                ((patch = patch + 1)); \
+            fi; \
+        done; \
+        echo $${major}.$${minor}.$${patch})
 
     # Setup custom remote repo.
     CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
@@ -248,16 +259,19 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     PROJECT_VERSION_ALIAS := latest
 
     # Extend project versions if NOT in release mode and NOT the CI developer id
-    ifneq ($(RELEASE_MODE),1)
+    ifeq ($(RELEASE_MODE),1)
+        PROJECT_VERSION := $(call find_next_free_version,$(PROJECT_VERSION))
+    else
         PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
         PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
     endif
     $(info New project version: $(PROJECT_VERSION))
 
     # Set conan chanel base on the release mode
-    CONAN_CHANNEL := develop
     ifeq ($(RELEASE_MODE),1)
         CONAN_CHANNEL := stable
+    else
+        CONAN_CHANNEL := develop
     endif
     $(info Conan channel: $(CONAN_CHANNEL))
 
