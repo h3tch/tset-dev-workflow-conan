@@ -159,7 +159,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.7
+CURRENT_WORKFLOW_VERSION := 4.0.8
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -222,13 +222,22 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     endif
 
     # PROJECT_VERSION_LATEST
-    PROJECT_VERSION_LATEST := $(or $(shell \
-        conan inspect $(PROJECT_NAME)/latest@$(CONAN_USER)/stable -a alias -r tset-conan | \
-        grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+    ifeq ($(RELEASE_MODE),1)
+        LATEST_MERGE_SHA := $(shell git log -n 1 --merges | grep Merge: | cut -d " " -f 3)
+        PROJECT_VERSION_LATEST := $(or $(shell \
+            conan inspect $(PROJECT_NAME)/$(LATEST_MERGE_SHA)@$(CONAN_USER)/develop -a alias -r tset-conan | \
+            grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+    else
+        PROJECT_VERSION_LATEST := $(or $(shell \
+            conan inspect $(PROJECT_NAME)/latest@$(CONAN_USER)/stable -a alias -r tset-conan | \
+            grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+    endif
     $(info Cur project version: $(PROJECT_VERSION_LATEST))
     
-    # PROJECT_VERSION
-    ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major*),)
+    # Increase PROJECT_VERSION_LATEST to get the new PROJECT_VERSION
+    ifeq ($(RELEASE_MODE),1)
+        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1)))))
+    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major*),)
         inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).0.0
     else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature*),)
         inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).0
@@ -238,21 +247,21 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     PROJECT_VERSION := $(call inc,$(PROJECT_VERSION_LATEST))
     PROJECT_VERSION_ALIAS := latest
 
-	# Set conan chanel base on the release mode
-    CONAN_CHANNEL := develop
-    ifeq ($(RELEASE_MODE),1)
-        CONAN_CHANNEL := stable
-    endif
-    $(info Conan channel: $(CONAN_CHANNEL))
-
-	# Extend project versions if NOT in release mode and NOT the CI developer id
+    # Extend project versions if NOT in release mode and NOT the CI developer id
     ifneq ($(RELEASE_MODE),1)
         PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
         PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
     endif
     $(info New project version: $(PROJECT_VERSION))
 
-	# Set conan chanel latest version to latest for developers and latest.0 for the CI
+    # Set conan chanel base on the release mode
+    CONAN_CHANNEL := develop
+    ifeq ($(RELEASE_MODE),1)
+        CONAN_CHANNEL := stable
+    endif
+    $(info Conan channel: $(CONAN_CHANNEL))
+
+    # Set conan chanel latest version to latest for developers and latest.0 for the CI
     CONAN_LATEST := latest
     ifeq ($(DEVELOPER_ID),0)
         CONAN_LATEST := $(PROJECT_VERSION_ALIAS)
@@ -261,11 +270,16 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
 
     # CONAN_RECIPE
     CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
+    $(info Conan recipe: $(CONAN_RECIPE))
     CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
     ifeq ($(RELEASE_MODE),1)
         CONAN_RECIPE_CI_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS).$(DEVELOPER_ID)@$(CONAN_USER)/$(CONAN_CHANNEL)
+        $(info Conan alias: $(CONAN_RECIPE_CI_ALIAS))
+    else
+        COMMIT_SHA := $(shell git rev-parse --short HEAD~0)
+        CONAN_COMMIT_ALIAS := $(PROJECT_NAME)/$(COMMIT_SHA)@$(CONAN_USER)/$(CONAN_CHANNEL)
+        $(info Conan commit: $(CONAN_COMMIT_ALIAS))
     endif
-    $(info Conan recipe: $(CONAN_RECIPE))
 
     # Is NOT in develop mode
     ifeq ($(RELEASE_MODE),1)
@@ -456,6 +470,8 @@ else
 	$(call conan_upload_alias,$(CONAN_RECIPE_ALIAS))
 ifeq ($(RELEASE_MODE),1)
 	$(call conan_upload_alias,$(CONAN_RECIPE_CI_ALIAS))
+else
+	$(call conan_upload_alias,$(CONAN_COMMIT_ALIAS))
 endif
 endif
 
