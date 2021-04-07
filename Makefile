@@ -156,7 +156,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.11
+CURRENT_WORKFLOW_VERSION := 4.0.12
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -234,6 +234,12 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
         $(info Set CONAN_USER_HOME: $(PROJECT_DIR))
     endif
 
+    ifeq ($(CI_PIPELINE_SOURCE),push)
+    ifeq ($(CI_COMMIT_REF_NAME),master)
+        RELEASE_MODE := 1
+    endif
+    endif
+
     $(info Branch: $(CI_COMMIT_REF_NAME))
     $(info Event: $(if $(CI_PIPELINE_SOURCE),$(CI_PIPELINE_SOURCE),local development))
 
@@ -250,12 +256,24 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
         CONAN_SRC_CHANNEL := stable
         CONAN_DST_CHANNEL := stable
     else ifeq ($(CI_PIPELINE_SOURCE),pipeline)
-        NEW_PROJECT_VERSION := 0.0.$(PARENT_PIPELINE_ID)
-        NEW_PROJECT_VERSION_CI := tmp.$(PARENT_PIPELINE_ID)
-        CONAN_PARENT_SRC_LATEST := latest.$(PARENT_PIPELINE_ID)
-        CONAN_SRC_LATEST := tmp.$(PARENT_PIPELINE_ID)
-        CONAN_SRC_CHANNEL := develop
-        CONAN_DST_CHANNEL := develop
+        ifeq ($(RELEASE_MODE),1)
+            CUR_PROJECT_VERSION := $(or $(shell \
+                conan inspect $(PROJECT_NAME)/latest@$(CONAN_USER)/stable -a alias -r tset-conan | \
+                grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+            NEW_PROJECT_VERSION := $(call find_next_free_version,$(CUR_PROJECT_VERSION),3)
+            NEW_PROJECT_VERSION_LATEST := latest
+            CONAN_PARENT_SRC_LATEST := latest
+            CONAN_SRC_LATEST := latest
+            CONAN_SRC_CHANNEL := stable
+            CONAN_DST_CHANNEL := stable
+        else
+            NEW_PROJECT_VERSION := 0.0.$(PARENT_PIPELINE_ID)
+            NEW_PROJECT_VERSION_CI := tmp.$(PARENT_PIPELINE_ID)
+            CONAN_PARENT_SRC_LATEST := latest.$(PARENT_PIPELINE_ID)
+            CONAN_SRC_LATEST := tmp.$(PARENT_PIPELINE_ID)
+            CONAN_SRC_CHANNEL := develop
+            CONAN_DST_CHANNEL := develop
+        endif
     else # is merge request or developer
         # get latest version from stable
         CUR_PROJECT_VERSION := $(or $(shell \
@@ -305,6 +323,7 @@ else
         -e CI_COMMIT_REF_NAME=$(CI_COMMIT_REF_NAME) \
         -e CI_PIPELINE_SOURCE=$(CI_PIPELINE_SOURCE) \
         -e CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
+        -e RELEASE_MODE=$(RELEASE_MODE) \
         -e CONAN_USER=$(CONAN_USER) \
         -e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
         -e FORCE_CONAN_USER=$(FORCE_CONAN_USER) \
@@ -357,6 +376,7 @@ define generate_env_files
 	echo "CONAN_REQUIRE=$${NEW_CONAN_REQUIRE}" >> $(CONAN_CONFIG_FILE)
 
     # CI_CONFIG_FILE
+	echo "RELEASE_MODE=$(RELEASE_MODE)" > $(CI_CONFIG_FILE)
 	echo "PROJECT_NAME=$(PROJECT_NAME)" >> $(CI_CONFIG_FILE)
 endef
 

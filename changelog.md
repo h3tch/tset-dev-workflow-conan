@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.12 - 2021-04-07
+### Fixed
+- Fix triggered release builds on child pipelines.
+
 ## 4.0.11 - 2021-04-07
 ### Fixed
 - Allow version overwrite for stable packages.
