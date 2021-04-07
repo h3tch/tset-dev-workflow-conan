@@ -3,7 +3,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 4.0.9 - 2021-04-06
 ### Fixed
-- Fix version colission on the stable channel.
+- Fix version collision on the stable channel.
 
 ## 4.0.8 - 2021-04-06
 ### Fixed
