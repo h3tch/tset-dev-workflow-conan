@@ -25,7 +25,8 @@ class CppDevContainerConan(ConanFile):
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
         requirements = config.get('CONAN_REQUIRE', None)
-        CppDevContainerConan.requires = None if requirements is None else requirements.split(',')
+        if requirements is not None and len(requirements) > 0:
+            CppDevContainerConan.requires = requirements.split(',')
 
         super().__init__(*args, **kwargs)
 

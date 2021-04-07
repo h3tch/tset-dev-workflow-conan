@@ -14,7 +14,8 @@ class CppDevContainerTestConan(ConanFile):
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join('out', '.env')))
         requirements = config.get('CONAN_REQUIRE', None)
-        CppDevContainerTestConan.requires = None if requirements is None else requirements.split(',')
+        if requirements is not None and len(requirements) > 0:
+            CppDevContainerTestConan.requires = requirements.split(',')
         super().__init__(*args, **kwargs)
 
     def build(self):
