@@ -13,17 +13,8 @@ class CppDevContainerTestConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join('out', '.env')))
-
-        def convert_to_conan_recipe(requirements):
-            if requirements is None or len(requirements) == 0:
-                return requirements
-            user = config.get('CONAN_USER', '')
-            channel = config.get('CONAN_CHANNEL', '')
-            latest = config.get('CONAN_LATEST', 'latest')
-            return requirements.replace('{latest}', latest).replace('{user}', user).replace('{channel}', channel).split(',')
-
-        CppDevContainerTestConan.requires = convert_to_conan_recipe(config.get('CONAN_REQUIRE', None))
-
+        requirements = config.get('CONAN_REQUIRE', None)
+        CppDevContainerTestConan.requires = None if requirements is None else requirements.split(',')
         super().__init__(*args, **kwargs)
 
     def build(self):

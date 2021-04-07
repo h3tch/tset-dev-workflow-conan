@@ -57,17 +57,15 @@
 ##
 ## ```
 ## PROJECT_NAME=the-name-of-the-project
-## PROJECT_VERSION=1.0.0
 ## PROJECT_URL=https://github.com/optional/path/to/repo.git
 ## PROJECT_DESCRIPTION="Optional project information."
-## WORKFLOW_VERSION=2.0.0
+## WORKFLOW_VERSION=4.0.9
 ## DOCKER_BASE_IMAGE=h3tch/dev-workflow:1.0.0
 ## DOCKER_IMAGE=the-name-of-the-image:latest
 ## CONAN_USER=username
 ## CONAN_SERVER_NAME=conan-server
 ## CONAN_SERVER_URL=http://localhost:9300
-## CONAN_CHANNEL=testing
-## CONAN_REQUIRE=boost/1.74.0,stdc/1.0.0@demo/stable,mathc/1.X@{user}/{channel}
+## CONAN_REQUIRE=boost/1.74.0,stdc/1.0.0@demo/stable,mathc/{latest}@{user}/{channel}
 ## CONAN_KEEP_PACKAGE=1
 ## ```
 ##
@@ -81,8 +79,7 @@
 ## | CONAN_USER         | The conan user for package search and upload. |
 ## | CONAN_SERVER_NAME  | The name of the conan server from where to down and upload internal packages. |
 ## | CONAN_SERVER_URL   | The url of the conan server from where to down and upload internal packages. |
-## | CONAN_CHANNEL      | The conan channel from where to down and upload internal packages. |
-## | CONAN_REQUIRE      | Additional conan requirements as a comma separated list. 1.X indicates the most recent major version. {user} means CONAN_USER will be inserted here. {channel} means CONAN_CHANNEL will be inserted here. |
+## | CONAN_REQUIRE      | Additional conan requirements as a comma separated list. 1.X indicates the most recent major version. {user} means CONAN_USER will be inserted here. {channel} means the conan channel will be inserted here. |
 ## | CONAN_KEEP_PACKAGE | The conan repository path will be set the the root folder of the project. The repository will hence not be deleted when the container closes. |
 ## 
 ## ### The Dockerfile explained
@@ -165,11 +162,11 @@ WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 # VARIABLES
 
 -include config
+DEVELOPER_ID ?= 0
 export COMPILE_OPTIONS
 export PROJECT_NAME := $(or $(PROJECT_NAME),test-project)
-export PROJECT_VERSION := $(or $(PROJECT_VERSION),1.0.0).$(or $(CI_PIPELINE_ID),0)
 export PROJECT_DIR := $(abspath .)
-DEVELOPER_ID ?= 0
+CONTAINER_NAME := $(PROJECT_NAME)-$(or $(PARENT_PIPELINE_ID),$(CI_PIPELINE_ID),$(DEVELOPER_ID))
 
 ifeq ($(IS_INSIDE_CONTAINER), 1)
 ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
@@ -183,10 +180,16 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     CI_CONFIG_FILE := out/ci.env
     CONAN_CONFIG_FILE := out/.env
     CONAN_USER := $(or $(FORCE_CONAN_USER),$(CONAN_USER),demo)
-    CONAN_CHANNEL := $(or $(FORCE_CONAN_CHANNEL),$(CONAN_CHANNEL),stable)
     CONAN_SERVER_NAME := $(or $(FORCE_CONAN_SERVER_NAME),$(CONAN_SERVER_NAME),local-conan)
     CONAN_SERVER_URL := $(or $(FORCE_CONAN_SERVER_URL),$(CONAN_SERVER_URL),http://localhost:9300)
     CONAN_USER_PASSWORD := $(or $(FORCE_CONAN_USER_PASSWORD),$(CONAN_USER_PASSWORD),$(CONAN_USER))
+    CI_COMMIT_REF_NAME := $(or $(CI_COMMIT_REF_NAME),$(shell git symbolic-ref --short HEAD))
+    CI_PIPELINE_ID := $(or $(CI_PIPELINE_ID),$(DEVELOPER_ID))
+    PARENT_PIPELINE_ID := $(or $(PARENT_PIPELINE_ID),$(DEVELOPER_ID))
+    PARENT_PROJECT_NAME := $(or $(PARENT_PROJECT_NAME),__NO_PARENT_PROJECT__)
+
+    ensure_valid_version = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1)))))
+
     find_next_free_version = $(shell found=1; \
         major=$(word 1,$(subst ., ,$1)); \
         minor=$(word 2,$(subst ., ,$1)); \
@@ -194,10 +197,21 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
         while [[ $$found -ge 1 ]]; do \
             found=$$(conan download $(PROJECT_NAME)/$${major}.$${minor}.$${patch}@$(CONAN_USER)/stable -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1 || echo 0); \
             if [[ $$found -ge 1 ]]; then \
-                ((patch = patch + 1)); \
+                if [[ $2 -eq 1 ]]; then \
+                    ((major = major + 1)); \
+                    ((minor = 0)); \
+                    ((patch = 0)); \
+                elif [[ $2 -eq 2 ]]; then \
+                    ((minor = minor + 1)); \
+                    ((patch = 0)); \
+                elif [[ $2 -eq 3 ]]; then \
+                    ((patch = patch + 1)); \
+                fi \
             fi; \
         done; \
         echo $${major}.$${minor}.$${patch})
+    
+    package_exists = $(shell conan download $1 -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1)
 
     # Setup custom remote repo.
     CONAN_REMOTE_EXISTS := $(shell (conan remote list 2>/dev/null | grep -q tset-conan) && echo 1)
@@ -220,93 +234,59 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
         $(info Set CONAN_USER_HOME: $(PROJECT_DIR))
     endif
 
-    # CUR_BRANCH_NAME
-    CUR_BRANCH_NAME := $(or $(CI_COMMIT_REF_NAME),$(shell git symbolic-ref --short HEAD))
-    $(info Branch: $(CUR_BRANCH_NAME))
-    
-    # Check if in release mode
-    ifeq ($(CI_PIPELINE_SOURCE),push)
-    ifeq ($(CUR_BRANCH_NAME),master)
-        RELEASE_MODE := 1
-        $(info Is in release mode.)
-    endif
-    endif
+    $(info Branch: $(CI_COMMIT_REF_NAME))
+    $(info Event: $(if $(CI_PIPELINE_SOURCE),$(CI_PIPELINE_SOURCE),local development))
 
-    # PROJECT_VERSION_LATEST
-    ifeq ($(RELEASE_MODE),1)
-        LATEST_MERGE_SHA := $(shell git log -n 1 --merges | grep Merge: | cut -d " " -f 3)
-        PROJECT_VERSION_LATEST := $(or $(shell \
-            conan inspect $(PROJECT_NAME)/$(LATEST_MERGE_SHA)@$(CONAN_USER)/develop -a alias -r tset-conan | \
+    # Get project versions
+
+    ifeq ($(CI_PIPELINE_SOURCE),push)
+        # get latest CI generated version from develop
+        CUR_PROJECT_VERSION := $(or $(shell \
+            conan inspect $(PROJECT_NAME)/latest.$(DEVELOPER_ID)@$(CONAN_USER)/develop -a alias -r tset-conan | \
             grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
-    else
-        PROJECT_VERSION_LATEST := $(or $(shell \
+        NEW_PROJECT_VERSION := $(call ensure_valid_version,$(CUR_PROJECT_VERSION))
+        NEW_PROJECT_VERSION_LATEST := latest
+        CONAN_SRC_LATEST := latest
+        CONAN_SRC_CHANNEL := stable
+        CONAN_DST_CHANNEL := stable
+    else ifeq ($(CI_PIPELINE_SOURCE),pipeline)
+        NEW_PROJECT_VERSION := 0.0.$(PARENT_PIPELINE_ID)
+        NEW_PROJECT_VERSION_CI := tmp.$(PARENT_PIPELINE_ID)
+        CONAN_PARENT_SRC_LATEST := latest.$(PARENT_PIPELINE_ID)
+        CONAN_SRC_LATEST := tmp.$(PARENT_PIPELINE_ID)
+        CONAN_SRC_CHANNEL := develop
+        CONAN_DST_CHANNEL := develop
+    else # is merge request or developer
+        # get latest version from stable
+        CUR_PROJECT_VERSION := $(or $(shell \
             conan inspect $(PROJECT_NAME)/latest@$(CONAN_USER)/stable -a alias -r tset-conan | \
             grep alias | grep -o -E '/[0-9.]+@' | cut -d "/" -f 2 | cut -d "@" -f 1), 0.0.0)
+        VERSION_BUMP_TARGET := $(if $(filter major%,$(CI_COMMIT_REF_NAME)),1,$(if $(filter feature%,$(CI_COMMIT_REF_NAME)),2,3))
+        NEW_PROJECT_VERSION := $(call find_next_free_version,$(CUR_PROJECT_VERSION),$(VERSION_BUMP_TARGET)).$(DEVELOPER_ID)
+        NEW_PROJECT_VERSION_LATEST := latest.$(DEVELOPER_ID)
+        NEW_PROJECT_VERSION_CI := latest.$(CI_PIPELINE_ID)
+        CONAN_SRC_LATEST := latest
+        CONAN_SRC_CHANNEL := stable
+        CONAN_DST_CHANNEL := develop
     endif
-    $(info Cur project version: $(PROJECT_VERSION_LATEST))
-    
-    # Increase PROJECT_VERSION_LATEST to get the new PROJECT_VERSION
-    ifeq ($(RELEASE_MODE),1)
-        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1)))))
-    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^major*),)
-        inc = $(shell echo $$(($(word 1,$(subst ., ,$1))+1))).0.0
-    else ifneq ($(shell echo $(CUR_BRANCH_NAME) | grep ^feature*),)
-        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $$(($(word 2,$(subst ., ,$1))+1))).0
-    else
-        inc = $(shell echo $(word 1,$(subst ., ,$1))).$(shell echo $(word 2,$(subst ., ,$1))).$(shell echo $$(($(word 3,$(subst ., ,$1))+1)))
-    endif
-    PROJECT_VERSION := $(call inc,$(PROJECT_VERSION_LATEST))
-    PROJECT_VERSION_ALIAS := latest
+    $(info Version bump: $(CUR_PROJECT_VERSION) -> $(NEW_PROJECT_VERSION))
 
-    # Extend project versions if NOT in release mode and NOT the CI developer id
-    ifeq ($(RELEASE_MODE),1)
-        PROJECT_VERSION := $(call find_next_free_version,$(PROJECT_VERSION))
-    else
-        PROJECT_VERSION := $(PROJECT_VERSION).$(DEVELOPER_ID)
-        PROJECT_VERSION_ALIAS := latest.$(DEVELOPER_ID)
-    endif
-    $(info New project version: $(PROJECT_VERSION))
+    CONAN_RECIPE := $(if $(NEW_PROJECT_VERSION),$(PROJECT_NAME)/$(NEW_PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_DST_CHANNEL))
+    CONAN_RECIPE_LATEST := $(if $(NEW_PROJECT_VERSION_LATEST),$(PROJECT_NAME)/$(NEW_PROJECT_VERSION_LATEST)@$(CONAN_USER)/$(CONAN_DST_CHANNEL))
+    CONAN_RECIPE_CI := $(if $(NEW_PROJECT_VERSION_CI),$(PROJECT_NAME)/$(NEW_PROJECT_VERSION_CI)@$(CONAN_USER)/$(CONAN_DST_CHANNEL))
 
-    # Set conan chanel base on the release mode
-    ifeq ($(RELEASE_MODE),1)
-        CONAN_CHANNEL := stable
-    else
-        CONAN_CHANNEL := develop
-    endif
-    $(info Conan channel: $(CONAN_CHANNEL))
+    $(info Upload recipes:)
+    $(if $(CONAN_RECIPE),$(info - $(CONAN_RECIPE)))
+    $(if $(CONAN_RECIPE_LATEST),$(info - $(CONAN_RECIPE_LATEST)))
+    $(if $(filter-out $(CONAN_RECIPE_LATEST),$(CONAN_RECIPE_CI)),$(info - $(CONAN_RECIPE_CI)))
 
-    # Set conan chanel latest version to latest for developers and latest.0 for the CI
-    CONAN_LATEST := latest
-    ifeq ($(DEVELOPER_ID),0)
-        CONAN_LATEST := $(PROJECT_VERSION_ALIAS)
+    # Make sure the packages do not exist
+    ifeq ($(filter develop,$(CONAN_DST_CHANNEL)),)
+    ifeq ($(if $(CONAN_RECIPE),$(call package_exists,$(CONAN_RECIPE))),1)
+        $(info ERROR: Package $(CONAN_RECIPE) already exists.)
+		exit
     endif
-    $(info Conan latest: $(CONAN_LATEST))
-
-    # CONAN_RECIPE
-    CONAN_RECIPE := $(PROJECT_NAME)/$(PROJECT_VERSION)@$(CONAN_USER)/$(CONAN_CHANNEL)
-    $(info Conan recipe: $(CONAN_RECIPE))
-    CONAN_RECIPE_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS)@$(CONAN_USER)/$(CONAN_CHANNEL)
-    ifeq ($(RELEASE_MODE),1)
-        CONAN_RECIPE_CI_ALIAS := $(PROJECT_NAME)/$(PROJECT_VERSION_ALIAS).$(DEVELOPER_ID)@$(CONAN_USER)/$(CONAN_CHANNEL)
-        $(info Conan alias: $(CONAN_RECIPE_CI_ALIAS))
-    else
-        COMMIT_SHA := $(shell git rev-parse --short HEAD~0)
-        CONAN_COMMIT_ALIAS := $(PROJECT_NAME)/$(COMMIT_SHA)@$(CONAN_USER)/$(CONAN_CHANNEL)
-        $(info Conan commit: $(CONAN_COMMIT_ALIAS))
     endif
-
-    # Is NOT in develop mode
-    ifeq ($(RELEASE_MODE),1)
-        PAKAGE_ALREADY_EXISTS := $(shell \
-            conan download $(CONAN_RECIPE) -r $(CONAN_SERVER_NAME) -re &> /dev/null && echo 1)
-        ifeq ($(PAKAGE_ALREADY_EXISTS),1)
-            $(info ERROR: Package $(CONAN_RECIPE) already exists in conan channel $(CONAN_CHANNEL).)
-			exit
-        else
-            $(info CHECK OK: Package not yet in conan channel $(CONAN_CHANNEL).)
-        endif
-    endif
-
 endif
 else
     # Is outside the container.
@@ -314,7 +294,6 @@ else
         $(info WARNING No 'config' file found.)
     endif
 
-    CONTAINER_NAME := $(PROJECT_NAME)-$(PROJECT_VERSION)
     CONTAINER_DIR := /workspaces/$(notdir $(CURDIR))
     PSEUDO_TTY := $(if $(DISABLE_TTY),,-t)
     DOCKER_BUILD_NO_CACHE ?= --no-cache
@@ -322,10 +301,11 @@ else
         --network host \
         -e IS_INSIDE_CONTAINER=1 \
         -e DEVELOPER_ID=$(DEVELOPER_ID) \
-        -e RELEASE_MODE=$(RELEASE_MODE) \
-        -e PARENT_GIT_BRANCH_NAME=$(PARENT_GIT_BRANCH_NAME) \
+        -e PARENT_PIPELINE_ID=$(PARENT_PIPELINE_ID) \
+        -e PARENT_PROJECT_NAME=$(PARENT_PROJECT_NAME) \
         -e CI_COMMIT_REF_NAME=$(CI_COMMIT_REF_NAME) \
         -e CI_PIPELINE_SOURCE=$(CI_PIPELINE_SOURCE) \
+        -e CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
         -e CONAN_USER=$(CONAN_USER) \
         -e CONAN_USER_PASSWORD=$(CONAN_USER_PASSWORD) \
         -e FORCE_CONAN_USER=$(FORCE_CONAN_USER) \
@@ -351,27 +331,29 @@ define generate_env_files
 	# Store the project information in the CONAN_CONFIG_FILE
 	# which will be used when the package is installed by the user.
 	echo PROJECT_NAME=$(PROJECT_NAME) > $(CONAN_CONFIG_FILE)
-	echo PROJECT_VERSION=$(PROJECT_VERSION) >> $(CONAN_CONFIG_FILE)
+	echo PROJECT_VERSION=$(NEW_PROJECT_VERSION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_DESCRIPTION=$(PROJECT_DESCRIPTION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
-	echo CONAN_USER=$(CONAN_USER) >> $(CONAN_CONFIG_FILE)
-	echo CONAN_CHANNEL=$(CONAN_CHANNEL) >> $(CONAN_CONFIG_FILE)
-	echo CONAN_LATEST=$(CONAN_LATEST) >> $(CONAN_CONFIG_FILE)
 	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
 	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
 		USER_PACKAGE=$${PACKAGE/\{user\}/$(CONAN_USER)}; \
-		CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/$(CONAN_CHANNEL)}; \
-		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
-			NEW_CONAN_REQUIRE=$${CONAN_PACKAGE}; \
+		CONAN_PACKAGE=$${USER_PACKAGE/\{channel\}/$(CONAN_SRC_CHANNEL)}; \
+		if [[ $${CONAN_PACKAGE} == $(PARENT_PROJECT_NAME)* ]]; then \
+			RECIPE=$${CONAN_PACKAGE/\{latest\}/$(CONAN_PARENT_SRC_LATEST)}; \
 		else \
-			NEW_CONAN_REQUIRE=$${NEW_CONAN_REQUIRE},$${CONAN_PACKAGE}; \
+			RECIPE=$${CONAN_PACKAGE/\{latest\}/$(CONAN_SRC_LATEST)}; \
+		fi; \
+		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
+			NEW_CONAN_REQUIRE=$${RECIPE}; \
+		else \
+			NEW_CONAN_REQUIRE=$${NEW_CONAN_REQUIRE},$${RECIPE}; \
 		fi \
 	done; \
 	echo "CONAN_REQUIRE=$${NEW_CONAN_REQUIRE}" >> $(CONAN_CONFIG_FILE)
 
     # CI_CONFIG_FILE
-	echo "RELEASE_MODE=$(RELEASE_MODE)" >> $(CI_CONFIG_FILE)
+	echo "PROJECT_NAME=$(PROJECT_NAME)" >> $(CI_CONFIG_FILE)
 endef
 
 define execute_make_target_in_container
@@ -396,7 +378,7 @@ endef
 
 define conan_upload_package
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME) \
-	&& conan export-pkg . $(CONAN_USER)/$(CONAN_CHANNEL) --force --package-folder=$(PACKAGE_OUT_DIR) \
+	&& conan export-pkg . $(CONAN_USER)/$(CONAN_DST_CHANNEL) --force --package-folder=$(PACKAGE_OUT_DIR) \
 	&& conan upload $(CONAN_RECIPE) -r=$(CONAN_SERVER_NAME) --all --check
 endef
 
@@ -481,11 +463,11 @@ ifneq ($(IS_INSIDE_CONTAINER), 1)
 	$(call execute_make_target_in_container,upload)
 else
 	$(call conan_upload_package)
-	$(call conan_upload_alias,$(CONAN_RECIPE_ALIAS))
-ifeq ($(RELEASE_MODE),1)
-	$(call conan_upload_alias,$(CONAN_RECIPE_CI_ALIAS))
-else
-	$(call conan_upload_alias,$(CONAN_COMMIT_ALIAS))
+ifneq ($(CONAN_RECIPE_LATEST),)
+	$(call conan_upload_alias,$(CONAN_RECIPE_LATEST))
+endif
+ifneq ($(filter-out $(CONAN_RECIPE_LATEST),$(CONAN_RECIPE_CI)),)
+	$(call conan_upload_alias,$(CONAN_RECIPE_CI))
 endif
 endif
 

@@ -20,20 +20,12 @@ class CppDevContainerConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join(current_directory, 'out', '.env')))
-
-        def convert_to_conan_recipe(requirements):
-            if requirements is None or len(requirements) == 0:
-                return requirements
-            user = config.get('CONAN_USER', '')
-            channel = config.get('CONAN_CHANNEL', '')
-            latest = config.get('CONAN_LATEST', 'latest')
-            return requirements.replace('{latest}', latest).replace('{user}', user).replace('{channel}', channel).split(',')
-
         CppDevContainerConan.name = config['PROJECT_NAME']
         CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
-        CppDevContainerConan.requires = convert_to_conan_recipe(config.get('CONAN_REQUIRE', None))
+        requirements = config.get('CONAN_REQUIRE', None)
+        CppDevContainerConan.requires = None if requirements is None else requirements.split(',')
 
         super().__init__(*args, **kwargs)
 
