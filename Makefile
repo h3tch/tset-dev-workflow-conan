@@ -156,7 +156,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.12
+CURRENT_WORKFLOW_VERSION := 4.0.13
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -362,10 +362,12 @@ define generate_env_files
 		else \
 			RECIPE=$${CONAN_PACKAGE/\{latest\}/$(CONAN_SRC_LATEST)}; \
 		fi; \
-        conan download $${RECIPE} -r $(CONAN_SERVER_NAME) -re &> /dev/null; \
-		if [ "$$?" != "0" ]; then \
-			PACKAGE_NAME=$$(echo $${PACKAGE} | cut -d "/" -f 1); \
-			RECIPE=$${PACKAGE_NAME}/latest@$(CONAN_USER)/stable; \
+        if [[ $${RECIPE} == */*@*/* ]]; then \
+			conan download $${RECIPE} -r $(CONAN_SERVER_NAME) -re &> /dev/null; \
+			if [ "$$?" != "0" ]; then \
+				PACKAGE_NAME=$$(echo $${PACKAGE} | cut -d "/" -f 1); \
+				RECIPE=$${PACKAGE_NAME}/latest@$(CONAN_USER)/stable; \
+			fi; \
 		fi; \
 		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
 			NEW_CONAN_REQUIRE=$${RECIPE}; \
