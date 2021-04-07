@@ -156,7 +156,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.9
+CURRENT_WORKFLOW_VERSION := 4.0.11
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -283,8 +283,7 @@ ifneq ($(filter release debug test package upload,$(MAKECMDGOALS)),)
     # Make sure the packages do not exist
     ifeq ($(filter develop,$(CONAN_DST_CHANNEL)),)
     ifeq ($(if $(CONAN_RECIPE),$(call package_exists,$(CONAN_RECIPE))),1)
-        $(info ERROR: Package $(CONAN_RECIPE) already exists.)
-		exit
+        $(info Warning: Package $(CONAN_RECIPE) already exists.)
     endif
     endif
 endif
