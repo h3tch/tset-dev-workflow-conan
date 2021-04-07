@@ -1,6 +1,10 @@
 # Changelog
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 4.0.10 - 2021-04-06
+### Fixed
+- Fix search recipe for required packages.
+
 ## 4.0.9 - 2021-04-06
 ### Fixed
 - Fix version collision on the stable channel.

@@ -344,6 +344,11 @@ define generate_env_files
 		else \
 			RECIPE=$${CONAN_PACKAGE/\{latest\}/$(CONAN_SRC_LATEST)}; \
 		fi; \
+        conan download $${RECIPE} -r $(CONAN_SERVER_NAME) -re &> /dev/null; \
+		if [ "$$?" != "0" ]; then \
+			PACKAGE_NAME=$$(echo $${PACKAGE} | cut -d "/" -f 1); \
+			RECIPE=$${PACKAGE_NAME}/latest@$(CONAN_USER)/stable; \
+		fi; \
 		if [ -z "$$NEW_CONAN_REQUIRE" ]; then \
 			NEW_CONAN_REQUIRE=$${RECIPE}; \
 		else \
