@@ -62,7 +62,7 @@ if (${HAS_SOURCE_FILES})
         target_precompile_headers ($ENV{PROJECT_NAME}
             PRIVATE "$ENV{PROJECT_DIR}/src/include/pch.h")
     endif ()
-    set_property(TARGET $ENV{PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+    set_property(TARGET $ENV{PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 else ()
     message (STATUS "Create a header only library")
     add_library ($ENV{PROJECT_NAME} INTERFACE)

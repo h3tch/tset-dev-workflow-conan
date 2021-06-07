@@ -13,6 +13,8 @@ class CppDevContainerTestConan(ConanFile):
 
     def __init__(self, *args, **kwargs):
         config = dict(load_config_file(os.path.join('out', '.env')))
+        os.environ['PROJECT_NAME'] = config['PROJECT_NAME']
+        os.environ['PROJECT_VERSION'] = config['PROJECT_VERSION']
         requirements = config.get('CONAN_REQUIRE', None)
         if requirements is not None and len(requirements) > 0:
             CppDevContainerTestConan.requires = requirements.split(',')

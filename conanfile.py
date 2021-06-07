@@ -24,6 +24,9 @@ class CppDevContainerConan(ConanFile):
         CppDevContainerConan.version = config['PROJECT_VERSION']
         CppDevContainerConan.description = config.get('PROJECT_DESCRIPTION', None)
         CppDevContainerConan.url = config.get('PROJECT_URL', None)
+        os.environ['PROJECT_NAME'] = config['PROJECT_NAME']
+        os.environ['PROJECT_VERSION'] = config['PROJECT_VERSION']
+        os.environ['COMPILE_OPTIONS'] = config['COMPILE_OPTIONS']
         requirements = config.get('CONAN_REQUIRE', None)
         if requirements is not None and len(requirements) > 0:
             CppDevContainerConan.requires = requirements.split(',')

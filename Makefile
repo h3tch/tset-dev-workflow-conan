@@ -18,12 +18,12 @@
 ## ### Setup your `DEVELOPER_NAME`
 ##
 ## **LINUX:** In your ".bashrc" (or .zshrc or similar file depending on your linux shell) set the
-## `DEVELOPER_NAME` variable to you developer name or initials.
+## `DEVELOPER_ID` variable to you developer name ID.
 ## ```sh
-## export DEVELOPER_NAME=mhe
+## export DEVELOPER_ID=123
 ## ```
 ##
-## **WINDOWS:** Add `DEVELOPER_NAME` to your user variables. Set it to your developer name or
+## **WINDOWS:** Add `DEVELOPER_ID` to your user variables. Set it to your developer name or
 ## initials.
 ##
 ## ### Working with the tset C++ workflow
@@ -156,7 +156,7 @@
 ## ```
 
 SHELL = /bin/bash
-CURRENT_WORKFLOW_VERSION := 4.0.14
+CURRENT_WORKFLOW_VERSION := 4.1.0
 WORKFLOW_REPO ?= https://github.com/h3tch/tset-dev-workflow-conan.git
 
 # VARIABLES
@@ -352,6 +352,7 @@ define generate_env_files
 	echo PROJECT_VERSION=$(NEW_PROJECT_VERSION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_DESCRIPTION=$(PROJECT_DESCRIPTION) >> $(CONAN_CONFIG_FILE)
 	echo PROJECT_URL=$(PROJECT_URL) >> $(CONAN_CONFIG_FILE)
+	echo COMPILE_OPTIONS=$(COMPILE_OPTIONS) >> $(CONAN_CONFIG_FILE)
 	# Store the new CONAN_REQUIRE variable in the CONAN_CONFIG_FILE.
 	conan user $(CONAN_USER) --password $(CONAN_USER_PASSWORD) -r $(CONAN_SERVER_NAME); \
 	for PACKAGE in $$(echo $(CONAN_REQUIRE) | tr ',' ' '); do \
